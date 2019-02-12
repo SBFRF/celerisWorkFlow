@@ -1,5 +1,8 @@
-function spectrum_FRF_2D_interp(f,theta,E_D,Hs_o,Tp_o)
-
+function spectrum_FRF_2D_interp(f,theta,E_D,Hs_o,Tp_o,n_cutoff)
+% % % Interpolates the 2D frequency x direction spectrum 
+% from FRF conventions of 62 by 75 to a value that is 
+% most appropriate for model setup. 
+% written by Pat Lynette, modified by spicer bak
 rng('shuffle');  % random rand seed
 
 Hmo = 0;
@@ -45,22 +48,56 @@ E_D=E_D(1:f_max_ind,t_min_ind:t_max_ind);
 
 nf=length(f);
 nt=length(theta);
+%%
+Hmo_c=0;
+for i=1:nf
+    for j=1:length(theta)
+        if i==1
+            del_f=(f(2)-f(1));
+        elseif i==length(f)
+            del_f=(f(length(f))-f(length(f)-1));
+        else
+            del_f=(f(i+1)-f(i))/2.+(f(i)-f(i-1))/2.;
+        end
+        
+        if j==1
+            if length(theta)==1
+                del_theta=1;
+            else
+                del_theta=(theta(2)-theta(1));
+            end
+        elseif j==length(theta)
+            del_theta=(theta(length(theta))-theta(length(theta)-1));
+        else
+            del_theta=(theta(j+1)-theta(j))/2.+(theta(j)-theta(j-1))/2.;
+        end
+        
+        Hmo_c = Hmo_c + E_D(i,j)*del_f*del_theta;
+    end
+end
+Hmo_cut_spectrum = sqrt(Hmo_c)*4.004;
 
 % refine df
-nf_new=100;
-df_new=(f_max-f(1))/(nf_new-1);
-1/df_new/60;
+df_new=1/(17*60);
 f_new=[f(1):df_new:f_max];
-E_D=interp2(f,theta,E_D',f_new,theta,'spline');
+
+repeat_time=1/df_new/60; % cycle repeat time in minutes
+disp(['Time series cycle time (min): ' num2str(repeat_time)])
+save repeat_time.txt repeat_time -ascii
+
+dt_new=16;
+theta_new=[theta(1):dt_new:theta(nt)];
+E_D=interp2(f,theta,E_D',f_new,theta_new','spline');
 E_D=E_D';
 f=f_new;
 nf=length(f);
-
+theta=theta_new;
+nt=length(theta);
+%%
 E_Dsort=sort(reshape(E_D,[nf*nt,1]),'descend');
-n_cutoff=900;
 E_cutoff=E_Dsort(min(length(E_Dsort),n_cutoff));
 
-Hmo=0;
+Hmo_c2=0;
 for i=1:nf
     for j=1:length(theta)
         if i==1
@@ -80,14 +117,17 @@ for i=1:nf
         end
         
         if E_D(i,j)>=E_cutoff
-            Hmo = Hmo + E_D(i,j)*del_f*del_theta;
+            Hmo_c2 = Hmo_c2 + E_D(i,j)*del_f*del_theta;
         end
     end
 end
-Hmo_cut_spectrum = sqrt(Hmo)*4.004;
+Hmo_cut_spectrum2 = sqrt(Hmo_c2)*4.004
 disp(['Input ','Full Spectrum','Cut Spectrum'])
 disp([Hs_o, Hmo_full_spectrum, Hmo_cut_spectrum])
 
+% adjust E_D
+E_D=E_D*Hmo_c/Hmo_c2;  % should lead to top 900 E_D points yielding Hmo_cut_spectrum
+E_cutoff=E_cutoff*Hmo_c/Hmo_c2;
 
 fileID = fopen('irrWaves.txt','w');
 line1='\n';
@@ -99,7 +139,10 @@ for i=1:3
     fprintf(fileID,cline);	
 end
 
-Hmo_truncated_spectrum=0;
+% adjust factor - model underpredicts generation of shorter waves
+Tfact=[5 6];
+adfac=[1.1 1.]*1.1;
+
 cur_ind=0;
 for i=1:nf
     if i==1
@@ -108,6 +151,15 @@ for i=1:nf
         del_f=(f(nf)-f(nf-1));
     else
         del_f=(f(i+1)-f(i))/2.+(f(i)-f(i-1))/2.;
+    end
+    
+    Tc=1/(f(i));
+    if Tc<Tfact(1)
+        adjust_c=adfac(1);
+    elseif Tc>Tfact(2)
+        adjust_c=adfac(2);
+    else
+        adjust_c=interp1(Tfact,adfac,Tc);
     end
     
     for j=1:length(theta)
@@ -121,8 +173,11 @@ for i=1:nf
         
         if E_D(i,j)>=E_cutoff
             cur_ind=cur_ind+1;
-            amp(i,j)=sqrt(2*E_D(i,j)*del_f*del_theta);
-            file_data(cur_ind,1)=1.5*amp(i,j);
+            if cur_ind>n_cutoff
+                error(['Too many frequencies, something not correct in logic'])
+            end
+            amp(i,j)=sqrt(2.*E_D(i,j)*del_f*del_theta);
+            file_data(cur_ind,1)=adjust_c*amp(i,j);
             file_data(cur_ind,2)=1/(f(i));
             file_data(cur_ind,3)=(270-(theta(j)+18.2))*3.1415/180;  % add 18.2 to account for site rotation
             file_data(cur_ind,4)=rand*2*3.1415;

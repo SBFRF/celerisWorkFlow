@@ -6,7 +6,7 @@ Bo=B;
 range_x=max(xo)-min(xo);
 range_y=max(yo)-min(yo);
 
-dx_target=grid_size(choice);
+dx_target=grid_size(choice)*max(1.,sqrt(H_toobig_factor)/1.15);
 dy_target=dx_target;
 
 x=[min(xo):dx_target:max(xo)];
