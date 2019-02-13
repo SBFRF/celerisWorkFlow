@@ -127,12 +127,12 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
         [wcx,wcy,wcz]=size(webcam_image);
         wc_reduce=8;
         webcam_image=webcam_image(1:wc_reduce:wcx,1:wc_reduce:wcy,:);
-        [wcx,wcy,wcz]=size(webcam_image);
+        [wcx, wcy, wcz]=size(webcam_image);
     catch
         disp('FRF website down')
         no_webcam_image=1;
     end
-    pier_image=imread('pier_image.jpg');
+    pier_image=imread('pier.jpg');
     [px,py,pz]=size(pier_image);
         
     load_FRFwave(fname_writeout)
@@ -395,7 +395,8 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
         
         % for some reason the straight call doesnt always maximize.
         % Force with robot
-        
+        tic
+        disp([' Model Running... please wait' sim_time ' seconds'])
         import java.awt.*;
         import java.awt.event.*;
         rob=Robot;
@@ -446,9 +447,9 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
         
         ! taskkill /IM Celeris.exe > screen.txt
         pause(30)  % sometimes celeris is slow to release file handles
-        
+        toc
         % write final surface to image
-        disp([' WORKFLOW: Loading output data and perfoming time series analysis'])
+        disp([' WORKFLOW: Model Complete!\nLoading output data and perfoming time series analysis'])
         if nviz==1
             load_array_nowcast
             set(hf6,'PaperPosition',[0 0 4 2.8]*resol(1)/2560);
@@ -508,7 +509,6 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
         clear imageData_anim;
         clear imageData_scap;
     end % nviz loop
-    disp('make NC files here')
     %%
     cd(frames_dir)
     fid = fopen('model_index.html','w');

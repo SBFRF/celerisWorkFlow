@@ -1,4 +1,5 @@
 % loads to-file output from Celeris
+function load_array(fnameOut)
 
 load time_axis.txt -ascii
 load array.txt -ascii
@@ -44,11 +45,8 @@ end
          end
      end
  end
- 
- plot(runup)
- 
- 
- 
+
+plot(runup)
 
 Hs=zeros(numx,numy);
 zmean=Hs;
@@ -61,7 +59,11 @@ for i=1:numx
         [Hs(i,j),zmean(i,j),Tp(i,j),Tm(i,j),f,Se,f_ave,S_ave]=spectral(time_axis(nt_start:nt),squeeze(eta(i,j,nt_start:nt))');
     end
 end
+%% Write NetCDF output
 
+
+
+%% process for gauge comparisons 
 
 % 8m-array processing
 inst_ind=1;
@@ -93,7 +95,7 @@ time_EDT = time_reference + double(waveTime(Nt_lidar))/24/60/60-5/24;  % EDT tim
 str1=['Nowcast Time: ' datestr(time_EDT,'yyyy-mm-dd HH:MM') ' EDT'];
 
 % Lidar Runup
-fname_lidar='FRF-ocean_waves_lidarRunup_201901.nc'
+fname_lidar='FRF-ocean_waves_lidarRunup_201901.nc';
 load_FRFwave_lidar(fname_lidar);
 load FRFwave_forecast_lidar.mat
 
@@ -109,7 +111,7 @@ title('Model-Data Comparison along y_{FRF}=940 m')
 xlabel('x_{FRF} [m]')
 ylabel('Elevation [m]')
 legend('Modeled H_s','Modeled setup x 10','Observed H_s (onshore only, >6s)','Observed H_s (all)','Lidar Hs','Lidar Setup','Location','SouthEast')
-
+end 
 
 
 

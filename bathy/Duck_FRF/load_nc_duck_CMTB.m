@@ -8,6 +8,7 @@ function load_nc_duck_CMTB(dateIn, method)
 % will go to server and pull bathy Closest in HISTORY 
 % to the date in, then make it an appropriate bathy 
 % for celeris simulations, it also sets the Gauge locations 
+% 
 % written by Patrick Lynett, USC modified by Spicer Bak, USACE 
 %%
 xMax = 910;% 
