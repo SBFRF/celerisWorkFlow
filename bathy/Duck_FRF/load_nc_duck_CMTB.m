@@ -1,8 +1,15 @@
-function load_nc_duck_CMTB(dateIn)
+function load_nc_duck_CMTB(dateIn, method)
 % date in expected in epoch times
+%  INPUT: 
+%       dateIN is a epoch time (time in seconds since 1970-01-01-)
+%       method: binary, 1 is closest in time 
+%                       0 is closest in history
+%
 % will go to server and pull bathy Closest in HISTORY 
-%  to the date in, then make it an appropriate bathy 
+% to the date in, then make it an appropriate bathy 
 % for celeris simulations, it also sets the Gauge locations 
+% written by Patrick Lynett, USC modified by Spicer Bak, USACE 
+%%
 xMax = 910;% 
 yMax = 1400; %smooth beyond this
 
@@ -18,11 +25,18 @@ ye=find(y>yMax,1);  % find portions of data to remove
 xe=find(x>xMax,1);  % find portions of data to remove 
 cd ..  % necessary due to needing to be in this folder to see this script,
 
-% closest in time 
-time_diff = abs(time_all-dateIn);
-min_time_diff = min(time_diff);
-ind_min_time_diff=find(time_diff == min_time_diff,1);
-% closest in history 
+if method == 1
+    % closest in time 
+    time_diff = abs(time_all-dateIn);
+    min_time_diff = min(time_diff);
+    ind_min_time_diff=find(time_diff == min_time_diff,1);
+elseif method == 0
+    % closest in history 
+    time_diff = dateIn - time_all;
+    max_time_diff = min(time_diff(time_diff > 0));
+    ind_min_time_diff = find(time_diff == max_time_diff,1); 
+end 
+
 disp(' BATHY: Currently only using closest bathy in time, not history')
 
 time_matlab = time_reference + double(time_all(ind_min_time_diff))/24/60/60; 

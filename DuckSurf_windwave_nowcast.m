@@ -1,25 +1,23 @@
-break_loop=0;
-
-while break_loop==0
-    
-    clear all;
-    close all;
-    w = warning ('off','all');
+function DuckSurf_windwave_nowcast(forecast_date, sim_time)
+%  This is a wrapper for Celeris Model
+%    INPUTS:
+%       forcast_date: a string for an hour to model format:
+%           'YYYY-mm-ddTHH.MM.SS.Z' in zulu time
+%       sim_time: wall time in seconds for simulation
+%           Model is killed by wall time, calculate computational need by
+%           domain and resolution
+%
+%   Written by Pat Lynett, USC and modified by Spicer Bak, USACE
+%%
+    w = warning ('off', 'all');
     clickableMap = false;
-    
-    break_loop=0;  % run forever
-    
     %% INPUTS:
-    % Forecast time
-    forecast_date=['2019-01-14T13.00.00.Z']; % hindcast date in Z
     forecast_count=1;  % only forecast for most recent data, can loop across this variable if more times desired
-    % wall clock time to run
-    sim_time=40*60; % wall clock time
     num_frames=300; % num frames to inlcude in animation
     vizCount = 3; % this will run 3 sims if just 1, will run with below order
     %=1 colored eta %=2 colored vorticity %=3 photorealistic
     dataPrefix = "datafiles";  % this is where all forcing data will live
-    %% gloabals 
+    %% gloabals
     % default values for all simulations:
     Courant=0.075;  % Courant number, controls time step
     Mannings_n=0.0035;  % Friction factor, quadratic law friction factor f/2*H*u^2
@@ -31,7 +29,7 @@ while break_loop==0
     % resol=[2560 1600];
     resol=[ss(3) ss(4)];  % automatically detect screen resolution
     
-
+    
     % END TOP INPUT BLOCK
     %%
     % Database locations and corresponding "ID"
@@ -45,8 +43,8 @@ while break_loop==0
     ind_c=1;
     dir_names{ind_c}='Duck_FRF';
     wave_bc(ind_c)=2;
-    % this is the numerical grid resolution in m   
-    grid_size(ind_c)=1.; 
+    % this is the numerical grid resolution in m
+    grid_size(ind_c)=1.;
     
     % Decide on location
     % from bathy database, "choice" varaiable corresponds to "ID" in "labels"
@@ -92,10 +90,9 @@ while break_loop==0
         end
         
     end
-       
-    disp(['Loading Input Data...'])
-
-
+    
+    disp([' NOWCAST: Loading Input Data...'])
+    
     %------------------------------------------------
     % load FRF THREDDS data, need coords from celeris_bathy.mat
     fname_year=forecast_date(1:4);
@@ -104,11 +101,12 @@ while break_loop==0
         fname_month=['0' fname_month];
     end
     % Get wave data  ____________________________________
-    disp(['gathering data locally from THREDDS'])
+    disp([' NOWCAST: gathering data locally from THREDDS'])
+    disp([' NOWCAST: getdata more efficently'])
     fname_thredds=['FRF-ocean_waves_8m-array_' fname_year fname_month '.nc'];
     fname_writeout='FRF_8m-array.nc';
     eval([' ! wget --output-document  ' fname_writeout ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waves/8m-array/' fname_year '/' fname_thredds '"'])
-
+    
     fname_thredds45=['FRF-ocean_waves_awac-4.5m_' fname_year fname_month '.nc'];
     fname_writeout45='FRF_awac-45m.nc';
     eval([' ! wget --output-document ' fname_writeout45 ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waves/awac-4.5m/' fname_year '/' fname_thredds45 '"'])
@@ -120,7 +118,7 @@ while break_loop==0
     fname_thredds19=['FRF-ocean_waves_xp125m_' fname_year fname_month '.nc'];
     fname_writeout19= 'FRF_xp-19m.nc';
     eval([' ! wget --output-document ' fname_writeout19 ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waves/xp125m/' fname_year '/' fname_thredds19 '"'])
-   
+    
     % get webcam image at this time ______________________
     no_webcam_image=0;
     try
@@ -134,7 +132,9 @@ while break_loop==0
         disp('FRF website down')
         no_webcam_image=1;
     end
-    
+    pier_image=imread('pier_image.jpg');
+    [px,py,pz]=size(pier_image);
+        
     load_FRFwave(fname_writeout)
     load FRFwave_forecast.mat
     disp(['Water depth at FRF nowcast offshore boundary (m): ' num2str(nominaldepth)])
@@ -157,34 +157,34 @@ while break_loop==0
     fname_thredds_tide=['FRF-ocean_waterlevel_eopNoaaTide_' fname_year fname_month '.nc'];
     fname_writeout_tide='FRF_tides.nc';
     eval([' ! wget --output-document ' fname_writeout_tide ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waterlevel/eopNoaaTide/' fname_year '/' fname_thredds_tide '"'])
-
+    
     tideTime=ncread(fname_writeout_tide,'time');
     waterlevel=ncread(fname_writeout_tide,'waterLevel');
     pred_waterlevel=ncread(fname_writeout_tide,'predictedWaterLevel');
     
     % load predictions NAVD88
     tide_pred=pred_waterlevel;
-
+    
     % load observations NAVD88
     tide_meas=waterlevel;
-
+    
     % add value here for storm surge, tide - any sort of constant water level
     % change for entire domain
     water_level_change=0;  %(m), all grids at NAVD datum, dummy value here for now
-        
     % Now do bathy  ______________________________________
     % load the pre-formatting mat file containing bathy/topo data
     % disp(['Shifting bathy to account for tide level of (m-NAVD88): ' num2str(water_level_change)])
-    cd(['bathy\' char(dir_names(choice))])  % change to local database directory, where the "celeris_bathy.mat" is located
-    bathy_date_str=[cur_date(1:4) cur_date(6:7) cur_date(9:10)];
-    load_nc_duck_CMTB(waveTime(Nt))
-    load celeris_bathy.mat
-    cd(cd_home)
-    
-    H_toobig_factor=1; % init for first bathy pass through
-    load_bathy  % run bathy load script
-    bathyimage=imread('bathytopo.jpg');
-    [bx,by,bz]=size(bathyimage);
+%     cd(['bathy\' char(dir_names(choice))])  % change to local database directory, where the "celeris_bathy.mat" is located
+%     bathy_date_str=[cur_date(1:4) cur_date(6:7) cur_date(9:10)];
+%     load_nc_duck_CMTB(waveTime(Nt))
+%     load celeris_bathy.mat
+%     cd(cd_home)
+%     
+%     H_toobig_factor=1; % init for first bathy pass through
+%     load_bathy  % run bathy load script
+%     bathyimage=imread('bathytopo.jpg');
+%     [bx,by,bz]=size(bathyimage);
+
     
     %%
     %clean and create output directory
@@ -196,318 +196,319 @@ while break_loop==0
     pause(2)  % allow dropbox to figure it out
     mkdir(frames_dir)
     %%
-    % start forecast loop
-    for ifcst=1:forecast_count
-        Nt=FRF_Wt_ind(ifcst);
-        FRF_Nt_time=waveTime(Nt);
-        % hourly data 
-        time_matlab = time_reference + double(waveTime(Nt))/24/60/60;  % for some reason time stamps off by 4 min 15 sec
-        cur_date=datestr(time_matlab,'yyyy-mm-ddTHH.MM.SS.Z');
-        
-        % create spectrum file
-        hf3=figure(3);
-        H=Hs(Nt);
-        T=Tp(Nt);
-        theta=Dp(Nt);
-        
-        % determine the frequency cutoff by number of grid points in X and
-        % Y, Current limitation of the model 
-        n_cutoff=min([1000,nx,ny]);
-        spectrum_FRF_2D_interp(waveFrequency,waveMeanDirection,squeeze(waveEnergyDensity(:,:,Nt))',H,T,n_cutoff)
-        
-        set(hf3,'PaperPosition',[0 0 3 3]*resol(1)/2560);
-        print -djpeg100 spectrum2D.jpg
-        specimage=imread('spectrum2D.jpg');
-        [wx,wy,wz]=size(specimage);
-%%     
-        % create forecast plot
-        hf5=figure(5);
-        clf
-        is=1;
-        ie=length(waveTime);
-        wT_trunc=time_reference + double(waveTime(is:ie))/24/60/60;
-        meanH=mean(Hs(is:ie));
-        
-        
-        mint_plot=forecast_num_matlab-3.5;
-        maxt_plot=forecast_num_matlab+12/24 ;
-        
-        subplot(4,1,1)
-        hold on
-        plot([cur_timeZ cur_timeZ],[-10 50],'--g','LineWidth',1)
-        plot(time_reference + double(waveTime(Nt))/24/60/60,Hs(Nt),'r.','MarkerSize',15)
-        plot(wT_trunc,Hs(is:ie))
-        axis([mint_plot maxt_plot 0 1.1*max(Hs(is:ie))])
-        datetick('x','mm-dd-HH','keepticks')
-        grid on
-        ylabel('Significant Wave Height (m)','FontSize',5,'fontweight','bold')
-        xlabel('Date/Time (UTC)','fontsize',5,'fontweight','bold')
-        
-        time_EDT = time_reference + double(waveTime(Nt))/24/60/60-5/24;  % EDT time
-        
-        str1=['Nowcast Time: ' datestr(time_EDT,'yyyy-mm-dd HH:MM') ' EDT'];
-        str2=['Plot Generated on: ' datestr(now,'yyyy-mm-dd HH:MM') ' PDT'];
-        
-        title({str1; str2},'FontSize',5,'fontweight','bold')
-        set(gca,'fontsize',5)
-        
-        subplot(4,1,2)
-        hold on
-        plot([cur_timeZ cur_timeZ],[-10 50],'--g','LineWidth',1)
-        plot(time_reference + double(waveTime(Nt))/24/60/60,Tp(Nt),'r.','MarkerSize',15)
-        plot(wT_trunc,Tp(is:ie))
-        axis([mint_plot maxt_plot 0 1.1*max(Tp(is:ie))])
-        datetick('x','mm-dd-HH','keepticks')
-        grid on
-        ylabel('Peak Wave Period (sec)','FontSize',5,'fontweight','bold')
-        xlabel('Date/Time (UTC)','fontsize',5,'fontweight','bold')
-        legend('Current Time','Animation Time','Location','SouthWest')
-        set(gca,'fontsize',5)
-        
-        subplot(4,1,3)
-        hold on
-        plot([cur_timeZ cur_timeZ],[-10 500],'--g','LineWidth',1)
-        plot(time_reference + double(waveTime(Nt))/24/60/60,Dp(Nt),'r.','MarkerSize',15)
-        plot(wT_trunc,Dp(is:ie))
-        axis([mint_plot maxt_plot 0.99*min(Dp(is:ie)) 1.01*max(Dp(is:ie))])
-        datetick('x','mm-dd-HH','keepticks')
-        grid on
-        ylabel('Wave Direction (deg CW from N)','FontSize',5,'fontweight','bold')
-        xlabel('Date/Time (UTC)','fontsize',5,'fontweight','bold')
-        set(gca,'fontsize',5)
-        
-        subplot(4,1,4)
-        hold on
-        plot([cur_timeZ cur_timeZ],[-10 500],'--g','LineWidth',1)
-        
-        water_level_change=interp1(tideTime,tide_meas,waveTime(Nt));
-        
-        plot(time_reference + double(waveTime(Nt))/24/60/60,water_level_change,'r.','MarkerSize',15)       
-        plot(time_reference + double(tideTime)/24/60/60,tide_pred)
-        plot(time_reference + double(tideTime)/24/60/60,tide_meas,'k')
-        axis([mint_plot maxt_plot 1.1*min(tide_pred) 1.1*max(tide_pred)])
-        datetick('x','mm-dd-HH','keepticks')
-        grid on
-        ylabel('Tide (m - NAVD88)','FontSize',5,'fontweight','bold')
-        xlabel('Date/Time (UTC)','fontsize',5,'fontweight','bold')
-        %        legend('Current Time','Observed Tides','Predicted Tides','Location','SouthEast')
-        set(gca,'fontsize',5)
-        
-        set(hf5,'PaperPosition',[0 0 3.2 7.1]*resol(1)/2560*0.9194);
-        print -djpeg100 FRF_forecast.jpg
-        forecastimage=imread('FRF_forecast.jpg');
-        [fcx,fcy,fcz]=size(forecastimage);
-        % trimoff top of image
-        forecastimage=forecastimage(15:fcx-20,:,:);
-        [fcx,fcy,fcz]=size(forecastimage);        
-        
-        % write  for web page
-        set(hf5,'PaperPosition',[0 0 3.2 7.1]*resol(1)/2560*0.9194*1);
-        print -djpeg100 FRF_forecast_small.jpg
-        forecastimage_small=imread('FRF_forecast_small.jpg');
-        [fcx_s,fcy_s,fcz_s]=size(forecastimage_small);
-        forecastimage_small=forecastimage_small(20:fcx_s-40,:,:);
-        fnameforecast_c=[grid_name '_Celeris_' cur_date '_forecast.jpg'];
-        cd(frames_dir)
-        imwrite(forecastimage_small,fnameforecast_c,'jpg','Quality',75);
-        cd(cd_home)
-%%        
-        % regenerate bathy to account for tide level
-        disp([' BATHY: Shifting bathy to account for tide level of (m-NAVD88): ' num2str(water_level_change)])
-        cd(['bathy\' char(dir_names(choice))])  % change to local database directory, where the "celeris_bathy.mat" is located
-        bathy_date_str=[cur_date(1:4) cur_date(6:7) cur_date(9:10)];
-        load_nc_duck_CMTB(FRF_Nt_time)  
-        load celeris_bathy.mat
-        cd(cd_home)
-        
-        load_bathy  % run bathy load script
-        bathyimage=imread('bathytopo.jpg');
-        [bx,by,bz]=size(bathyimage);
-        
-        % find instruement node indices for output
-        inst_ind=instruments*0;
-        for i=1:length(instruments(:,1))
-            inst_ind(i,1)=find(x>=instruments(i,1),1);
-            inst_ind(i,2)=find(y>=instruments(i,2),1);
-        end
-        
-        % strip range for output
-        range_x=[min(inst_ind(:,1)) max(inst_ind(:,1))];
-        range_y=median(inst_ind(:,2));
-        
-        % Determine time step
-        max_depth=-min(min(B));
-        ds=min(mean(diff(x)),mean(diff(y)));
-        timestep=Courant*ds/sqrt(9.81*max_depth);
-        
-        % write the simulation control file
-        file_name_cml='matlab_launch.cml';
-        
-        % create colorbar for image overlay
-        % cap color red limit at 2.5 m
-        H_plot_cbar=min(2.5/2,meanH);
-        colorbar_image=create_colorbar_jpg([-H_plot_cbar 2.0*H_plot_cbar]);
-        colorbar_image=imrotate(colorbar_image,-90);
-        [cbx,cby,cbz]=size(colorbar_image);
-        
-        % set breaking parameters based on wave height.  These are VIZ
-        % not pyhsical model parameters - they dont change simulation
-        % results
-        disp(" NOWCAST: is this true? I'm setting the breaking parameterization ")
-        brk_limH=[0.65 1.5];
-        brk_limthres=[0.2 0.45];
-        plung_atten=0.02;
-        
-        if H>brk_limH(2) % energetic plunging
-            brk1=brk_limthres(2);  % on/off threshold
-        elseif H<brk_limH(2) % low energy spilling
-            brk1=brk_limthres(1);
-        else  % seomthing inbetween
-            brk1=interp1(brk_limH,brk_limthres,H);
-        end
-        brk2=brk_limthres(2)-brk1+plung_atten;  % attenuation
-        
-        
-        %------------
-        % Type of input wave !not used for coastal spectrum-driven
-        % waves!. just putting dummy values
-        wave_type=2; %=1 for solitary wave, =2 for sine wave through boundary
-        xco=0; % defines the initial x-location (m) of the crest of the solitary wave
-        yco=0; % defines the initial y-location (m) of the crest of the solitary wave
-        for nviz=vizCount
-            % how many CML files do i need to create?
-            if nviz==1
-                create_cml(file_name_cml,timestep,Mannings_n,m_width,m_length,nx,ny,wave_type,H_plot_cbar,T,theta,xco,yco,bc,sponge,min_depth,brk1,brk2,inst_ind,range_x,range_y,Courant)
-            elseif nviz==2
-                create_cml_vorticity(file_name_cml,timestep,Mannings_n,m_width,m_length,nx,ny,wave_type,H_plot_cbar,T,theta,xco,yco,bc,sponge,min_depth,brk1,brk2,inst_ind,range_x,range_y,Courant)
-            elseif nviz==3
-                create_cml_photorealistic(file_name_cml,timestep,Mannings_n,m_width,m_length,nx,ny,wave_type,H_plot_cbar,T,theta,xco,yco,bc,sponge,min_depth,brk1,brk2,inst_ind,range_x,range_y,Courant)
-            end
-            create_cml(file_name_cml,timestep,Mannings_n,m_width,m_length,nx,ny,wave_type,H_plot_cbar,T,theta,xco,yco,bc,sponge,min_depth,brk1,brk2,inst_ind,range_x,range_y)
-            
-            delete array.txt
-            delete time_axis.txt
-            
-            % run Celeris
-            %           ! Celeris.exe  &
-            
-            % for some reason the straight call doesnt always maximize.
-            % Force with robot
-            
-            import java.awt.*;
-            import java.awt.event.*;
-            rob=Robot;
-            
-            h = actxserver('WScript.Shell');
-            h.Run('Celeris.exe'); %Invokes
-            
-            pause_int=sim_time/2/num_frames;
-            pause(sim_time/2+30)  % wait for sim warm up
-            
-            h.AppActivate('Celeris.exe'); %Brings to focus
-            rob.keyPress(KeyEvent.VK_WINDOWS)
-            rob.keyPress(KeyEvent.VK_UP)
-            rob.keyRelease(KeyEvent.VK_WINDOWS)
-            rob.keyRelease(KeyEvent.VK_UP)
-            
-            pause(10)
-            
-            logoimage=imread('logo.jpg');
-            [lx,ly,lz]=size(logoimage);
-            
-            
-            cd_home=cd;
-            for i=1:num_frames
-                imageData = screencapture(0, [0,0,resol(1)-500,resol(2)]); % select a small desktop region, crop out user menu
-                [nxiD,nyiD,nziD]=size(imageData);
-                
-                if i==1
-                    imageData_anim=zeros(nxiD,nyiD,nziD,num_frames,'uint8');
-                end
-                imageData(441:440+px,371:370+py,:)=pier_image;
-                imageData=imrotate(imageData, 18.2,'crop');
-                
-                %           imageData(nxiD-bx+1:nxiD,1:by,:)=bathyimage;
-                imageData(nxiD-wx+1:nxiD,nyiD-wy+1:nyiD,:)=specimage;
-                if nviz==1
-                    imageData(1:cbx,nyiD-cby+1-300:nyiD-300,:)=colorbar_image;
-                end
-                if no_webcam_image==0
-                    imageData(nxiD-wcx+1:nxiD,nyiD-wy-wcy+1:nyiD-wy,:)=webcam_image;
-                end
-                imageData(1:fcx,1:fcy,:)=forecastimage;
-                imageData(nxiD-lx+1:nxiD,1:ly,:)=logoimage;
-                imageData_anim(:,:,:,i)=imageData;  % straight screen capture stack
-                
-                pause(pause_int)
-            end
-            
-            ! taskkill /IM Celeris.exe > screen.txt
-            pause(30)  % sometimes celeris is slow to release file handles
-            
-            % write final surface to image
-            disp([' WORKFLOW: Loading output data and perfoming time series analysis'])
-            if nviz==1
-                load_array_nowcast
-                set(hf6,'PaperPosition',[0 0 4 2.8]*resol(1)/2560);
-                print -djpeg100 data_comp.jpg
-            end
-            dataimage=imread('data_comp.jpg');
-            [datax,datay,dataz]=size(dataimage);
-            
-            for i=1:num_frames
-                imageData_anim(cbx+10:cbx+9+datax,nyiD-datay+1:nyiD,:,i)=dataimage;  % overlay data comp
-            end
-            %% write final surface to image
-            cd(frames_dir)
-            fname_c=[grid_name '_Celeris_' cur_date '.jpg'];
-            imwrite(imageData,fname_c); % save the captured image to file
-            
-            % create animated gif
-            anim_name=[grid_name '_Celeris_' cur_date '.gif'];
-            for i=1:num_frames
-                im = imageData_anim(:,:,:,i);
-                [imind,cm] = rgb2ind(im,256);
-                % Write to the GIF File
-                if i == 1
-                    imwrite(imind,cm,anim_name,'gif','DelayTime',0,'Loopcount',inf);
-                else
-                    imwrite(imind,cm,anim_name,'gif','WriteMode','append','DelayTime',0);
-                end
-            end
-            
-            % create animated thumbnail gif
-            anim_name=[grid_name '_Celeris_' cur_date '_thumb.gif'];
-            reduce_resfac=4;
-            i_crop=100;
-            j_crop=340;
-            for i=max(1,num_frames-80):4:num_frames
-                im = imageData_anim(i_crop:reduce_resfac:nxiD-i_crop,j_crop:reduce_resfac:nyiD-j_crop,:,i);
-                [imind,cm] = rgb2ind(im,256);
-                % Write to the GIF File
-                if i == max(1,num_frames-80)
-                    imwrite(imind,cm,anim_name,'gif','DelayTime',0,'Loopcount',inf);
-                else
-                    imwrite(imind,cm,anim_name,'gif','WriteMode','append','DelayTime',0.3);
-                end
-            end
-            
-            % write animation to file
-            
-            disp(['Finishing off animations and writing to file'])
-            anim_name=[grid_name '_Celeris_' cur_date];
-            outputVideo = VideoWriter(fullfile(cd,anim_name));
-            outputVideo.FrameRate = 10;
-            outputVideo.Quality = 30;
-            open(outputVideo);
-            writeVideo(outputVideo,imageData_anim);
-            close(outputVideo);
-            cd(cd_home)
-            clear imageData_anim;
-            clear imageData_scap;
-        end % nviz loop
-
+    % start forecast loop -- removed
+    ifcst = 1;
+    Nt=FRF_Wt_ind(ifcst);
+    FRF_Nt_time=waveTime(Nt);
+    % hourly data
+    time_matlab = time_reference + double(waveTime(Nt))/24/60/60;  % for some reason time stamps off by 4 min 15 sec
+    cur_date=datestr(time_matlab,'yyyy-mm-ddTHH.MM.SS.Z');
+    
+    
+    %%
+    % regenerate bathy to account for tide level
+    disp([' BATHY: Shifting bathy to account for tide level of (m-NAVD88): ' num2str(water_level_change)])
+    cd(['bathy\' char(dir_names(choice))])  % change to local database directory, where the "celeris_bathy.mat" is located
+    bathy_date_str=[cur_date(1:4) cur_date(6:7) cur_date(9:10)];
+    load_nc_duck_CMTB(FRF_Nt_time, 0)
+    load celeris_bathy.mat
+    cd(cd_home)
+    
+    H_toobig_factor=1; % init for first bathy pass through
+    load_bathy  % run bathy load script
+    bathyimage=imread('bathytopo.jpg');
+    [bx,by,bz]=size(bathyimage);
+    
+    % create spectrum file
+    hf3=figure(3);
+    H=Hs(Nt);
+    T=Tp(Nt);
+    theta=Dp(Nt);
+    
+    % determine the frequency cutoff by number of grid points in X and
+    % Y, Current limitation of the model
+    n_cutoff=min([1000,nx,ny]);
+    spectrum_FRF_2D_interp(waveFrequency,waveMeanDirection,squeeze(waveEnergyDensity(:,:,Nt))',H,T,n_cutoff)
+    
+    set(hf3,'PaperPosition',[0 0 3 3]*resol(1)/2560);
+    print -djpeg100 spectrum2D.jpg
+    specimage=imread('spectrum2D.jpg');
+    [wx,wy,wz]=size(specimage);
+    %%
+    % create forecast plot
+    hf5=figure(5);
+    clf
+    is=1;
+    ie=length(waveTime);
+    wT_trunc=time_reference + double(waveTime(is:ie))/24/60/60;
+    meanH=mean(Hs(is:ie));
+    
+    mint_plot=forecast_num_matlab-3.5;
+    maxt_plot=forecast_num_matlab+12/24 ;
+    
+    subplot(4,1,1)
+    hold on
+    plot([cur_timeZ cur_timeZ],[-10 50],'--g','LineWidth',1)
+    plot(time_reference + double(waveTime(Nt))/24/60/60,Hs(Nt),'r.','MarkerSize',15)
+    plot(wT_trunc,Hs(is:ie))
+    axis([mint_plot maxt_plot 0 1.1*max(Hs(is:ie))])
+    datetick('x','mm-dd-HH','keepticks')
+    grid on
+    ylabel('Significant Wave Height (m)','FontSize',5,'fontweight','bold')
+    xlabel('Date/Time (UTC)','fontsize',5,'fontweight','bold')
+    time_EDT = time_reference + double(waveTime(Nt))/24/60/60-5/24;  % EDT time
+    str1=['Nowcast Time: ' datestr(time_EDT,'yyyy-mm-dd HH:MM') ' EDT'];
+    str2=['Plot Generated on: ' datestr(now,'yyyy-mm-dd HH:MM') ' PDT'];
+    title({str1; str2},'FontSize',5,'fontweight','bold')
+    set(gca,'fontsize',5)
+    
+    subplot(4,1,2)
+    hold on
+    plot([cur_timeZ cur_timeZ],[-10 50],'--g','LineWidth',1)
+    plot(time_reference + double(waveTime(Nt))/24/60/60,Tp(Nt),'r.','MarkerSize',15)
+    plot(wT_trunc,Tp(is:ie))
+    axis([mint_plot maxt_plot 0 1.1*max(Tp(is:ie))])
+    datetick('x','mm-dd-HH','keepticks')
+    grid on
+    ylabel('Peak Wave Period (sec)','FontSize',5,'fontweight','bold')
+    xlabel('Date/Time (UTC)','fontsize',5,'fontweight','bold')
+    legend('Current Time','Animation Time','Location','SouthWest')
+    set(gca,'fontsize',5)
+    
+    subplot(4,1,3)
+    hold on
+    plot([cur_timeZ cur_timeZ],[-10 500],'--g','LineWidth',1)
+    plot(time_reference + double(waveTime(Nt))/24/60/60,Dp(Nt),'r.','MarkerSize',15)
+    plot(wT_trunc,Dp(is:ie))
+    axis([mint_plot maxt_plot 0.99*min(Dp(is:ie)) 1.01*max(Dp(is:ie))])
+    datetick('x','mm-dd-HH','keepticks')
+    grid on
+    ylabel('Wave Direction (deg CW from N)','FontSize',5,'fontweight','bold')
+    xlabel('Date/Time (UTC)','fontsize',5,'fontweight','bold')
+    set(gca,'fontsize',5)
+    
+    subplot(4,1,4)
+    hold on
+    plot([cur_timeZ cur_timeZ],[-10 500],'--g','LineWidth',1)
+    
+    water_level_change=interp1(tideTime,tide_meas,waveTime(Nt));
+    
+    plot(time_reference + double(waveTime(Nt))/24/60/60,water_level_change,'r.','MarkerSize',15)
+    plot(time_reference + double(tideTime)/24/60/60,tide_pred)
+    plot(time_reference + double(tideTime)/24/60/60,tide_meas,'k')
+    axis([mint_plot maxt_plot 1.1*min(tide_pred) 1.1*max(tide_pred)])
+    datetick('x','mm-dd-HH','keepticks')
+    grid on
+    ylabel('Tide (m - NAVD88)','FontSize',5,'fontweight','bold')
+    xlabel('Date/Time (UTC)','fontsize',5,'fontweight','bold')
+    %        legend('Current Time','Observed Tides','Predicted Tides','Location','SouthEast')
+    set(gca,'fontsize',5)
+    
+    set(hf5,'PaperPosition',[0 0 3.2 7.1]*resol(1)/2560*0.9194);
+    print -djpeg100 FRF_forecast.jpg
+    forecastimage=imread('FRF_forecast.jpg');
+    [fcx,fcy,fcz]=size(forecastimage);
+    % trimoff top of image
+    forecastimage=forecastimage(15:fcx-20,:,:);
+    [fcx,fcy,fcz]=size(forecastimage);
+    
+    % write  for web page
+    set(hf5,'PaperPosition',[0 0 3.2 7.1]*resol(1)/2560*0.9194*1);
+    print -djpeg100 FRF_forecast_small.jpg
+    forecastimage_small=imread('FRF_forecast_small.jpg');
+    [fcx_s,fcy_s,fcz_s]=size(forecastimage_small);
+    forecastimage_small=forecastimage_small(20:fcx_s-40,:,:);
+    fnameforecast_c=[grid_name '_Celeris_' cur_date '_forecast.jpg'];
+    cd(frames_dir)
+    imwrite(forecastimage_small,fnameforecast_c,'jpg','Quality',75);
+    cd(cd_home)
+%% 
+    load_bathy  % run bathy load script
+    bathyimage=imread('bathytopo.jpg');
+    [bx,by,bz]=size(bathyimage);
+    
+    % find instruement node indices for output
+    inst_ind=instruments*0;
+    for i=1:length(instruments(:,1))
+        inst_ind(i,1)=find(x>=instruments(i,1),1);
+        inst_ind(i,2)=find(y>=instruments(i,2),1);
     end
+    
+    % strip range for output
+    range_x=[min(inst_ind(:,1)) max(inst_ind(:,1))];
+    range_y=median(inst_ind(:,2));
+    
+    % Determine time step
+    max_depth=-min(min(B));
+    ds=min(mean(diff(x)),mean(diff(y)));
+    timestep=Courant*ds/sqrt(9.81*max_depth);
+    
+    % write the simulation control file
+    file_name_cml='matlab_launch.cml';
+    
+    % create colorbar for image overlay
+    % cap color red limit at 2.5 m
+    H_plot_cbar=min(2.5/2,meanH);
+    colorbar_image=create_colorbar_jpg([-H_plot_cbar 2.0*H_plot_cbar]);
+    colorbar_image=imrotate(colorbar_image,-90);
+    [cbx,cby,cbz]=size(colorbar_image);
+    
+    % set breaking parameters based on wave height.  These are VIZ
+    % not pyhsical model parameters - they dont change simulation
+    % results, these values are determined in the model
+    brk_limH=[0.65 1.5];
+    brk_limthres=[0.2 0.45];
+    plung_atten=0.02;
+    
+    if H>brk_limH(2) % energetic plunging
+        brk1=brk_limthres(2);  % on/off threshold
+    elseif H<brk_limH(2) % low energy spilling
+        brk1=brk_limthres(1);
+    else  % seomthing inbetween
+        brk1=interp1(brk_limH,brk_limthres,H);
+    end
+    brk2=brk_limthres(2)-brk1+plung_atten;  % attenuation
+    
+    
+    %------------
+    % Type of input wave !not used for coastal spectrum-driven
+    % waves!. just putting dummy values
+    wave_type=2; %=1 for solitary wave, =2 for sine wave through boundary
+    xco=0; % defines the initial x-location (m) of the crest of the solitary wave
+    yco=0; % defines the initial y-location (m) of the crest of the solitary wave
+    for nviz=vizCount
+        % how many CML files do i need to create?
+        if nviz==1
+            create_cml(file_name_cml,timestep,Mannings_n,m_width,m_length,nx,ny,wave_type,H_plot_cbar,T,theta,xco,yco,bc,sponge,min_depth,brk1,brk2,inst_ind,range_x,range_y,Courant)
+        elseif nviz==2
+            create_cml_vorticity(file_name_cml,timestep,Mannings_n,m_width,m_length,nx,ny,wave_type,H_plot_cbar,T,theta,xco,yco,bc,sponge,min_depth,brk1,brk2,inst_ind,range_x,range_y,Courant)
+        elseif nviz==3
+            create_cml_photorealistic(file_name_cml,timestep,Mannings_n,m_width,m_length,nx,ny,wave_type,H_plot_cbar,T,theta,xco,yco,bc,sponge,min_depth,brk1,brk2,inst_ind,range_x,range_y,Courant)
+        end
+        create_cml(file_name_cml,timestep,Mannings_n,m_width,m_length,nx,ny,wave_type,H_plot_cbar,T,theta,xco,yco,bc,sponge,min_depth,brk1,brk2,inst_ind,range_x,range_y)
+        
+        delete array.txt
+        delete time_axis.txt
+        
+        % run Celeris
+        %           ! Celeris.exe  &
+        
+        % for some reason the straight call doesnt always maximize.
+        % Force with robot
+        
+        import java.awt.*;
+        import java.awt.event.*;
+        rob=Robot;
+        
+        h = actxserver('WScript.Shell');
+        h.Run('Celeris.exe'); %Invokes
+        
+        pause_int=sim_time/2/num_frames;
+        pause(sim_time/2+30)  % wait for sim warm up
+        
+        h.AppActivate('Celeris.exe'); %Brings to focus
+        rob.keyPress(KeyEvent.VK_WINDOWS)
+        rob.keyPress(KeyEvent.VK_UP)
+        rob.keyRelease(KeyEvent.VK_WINDOWS)
+        rob.keyRelease(KeyEvent.VK_UP)
+        
+        pause(10)
+        
+        logoimage=imread('logo.jpg');
+        [lx,ly,lz]=size(logoimage);
+        
+        
+        cd_home=cd;
+        for i=1:num_frames
+            imageData = screencapture(0, [0,0,resol(1)-500,resol(2)]); % select a small desktop region, crop out user menu
+            [nxiD,nyiD,nziD]=size(imageData);
+            
+            if i==1
+                imageData_anim=zeros(nxiD,nyiD,nziD,num_frames,'uint8');
+            end
+            imageData(441:440+px,371:370+py,:)=pier_image;
+            imageData=imrotate(imageData, 18.2,'crop');
+            
+            %           imageData(nxiD-bx+1:nxiD,1:by,:)=bathyimage;
+            imageData(nxiD-wx+1:nxiD,nyiD-wy+1:nyiD,:)=specimage;
+            if nviz==1
+                imageData(1:cbx,nyiD-cby+1-300:nyiD-300,:)=colorbar_image;
+            end
+            if no_webcam_image==0
+                imageData(nxiD-wcx+1:nxiD,nyiD-wy-wcy+1:nyiD-wy,:)=webcam_image;
+            end
+            imageData(1:fcx,1:fcy,:)=forecastimage;
+            imageData(nxiD-lx+1:nxiD,1:ly,:)=logoimage;
+            imageData_anim(:,:,:,i)=imageData;  % straight screen capture stack
+            
+            pause(pause_int)
+        end
+        
+        ! taskkill /IM Celeris.exe > screen.txt
+        pause(30)  % sometimes celeris is slow to release file handles
+        
+        % write final surface to image
+        disp([' WORKFLOW: Loading output data and perfoming time series analysis'])
+        if nviz==1
+            load_array_nowcast
+            set(hf6,'PaperPosition',[0 0 4 2.8]*resol(1)/2560);
+            print -djpeg100 data_comp.jpg
+        end
+        dataimage=imread('data_comp.jpg');
+        [datax,datay,dataz]=size(dataimage);
+        
+        for i=1:num_frames
+            imageData_anim(cbx+10:cbx+9+datax,nyiD-datay+1:nyiD,:,i)=dataimage;  % overlay data comp
+        end
+        %% write final surface to image
+        cd(frames_dir)
+        fname_c=[grid_name '_Celeris_' cur_date '.jpg'];
+        imwrite(imageData,fname_c); % save the captured image to file
+        
+        % create animated gif
+        anim_name=[grid_name '_Celeris_' cur_date '.gif'];
+        for i=1:num_frames
+            im = imageData_anim(:,:,:,i);
+            [imind,cm] = rgb2ind(im,256);
+            % Write to the GIF File
+            if i == 1
+                imwrite(imind,cm,anim_name,'gif','DelayTime',0,'Loopcount',inf);
+            else
+                imwrite(imind,cm,anim_name,'gif','WriteMode','append','DelayTime',0);
+            end
+        end
+        
+        % create animated thumbnail gif
+        anim_name=[grid_name '_Celeris_' cur_date '_thumb.gif'];
+        reduce_resfac=4;
+        i_crop=100;
+        j_crop=340;
+        for i=max(1,num_frames-80):4:num_frames
+            im = imageData_anim(i_crop:reduce_resfac:nxiD-i_crop,j_crop:reduce_resfac:nyiD-j_crop,:,i);
+            [imind,cm] = rgb2ind(im,256);
+            % Write to the GIF File
+            if i == max(1,num_frames-80)
+                imwrite(imind,cm,anim_name,'gif','DelayTime',0,'Loopcount',inf);
+            else
+                imwrite(imind,cm,anim_name,'gif','WriteMode','append','DelayTime',0.3);
+            end
+        end
+        
+        % write animation to file
+        
+        disp(['Finishing off animations and writing to file'])
+        anim_name=[grid_name '_Celeris_' cur_date];
+        outputVideo = VideoWriter(fullfile(cd,anim_name));
+        outputVideo.FrameRate = 10;
+        outputVideo.Quality = 30;
+        open(outputVideo);
+        writeVideo(outputVideo,imageData_anim);
+        close(outputVideo);
+        cd(cd_home)
+        clear imageData_anim;
+        clear imageData_scap;
+    end % nviz loop
+    disp('make NC files here')
     %%
     cd(frames_dir)
     fid = fopen('model_index.html','w');
@@ -525,27 +526,26 @@ while break_loop==0
     fprintf(fid, ['<BR> Note: If image links appear broken (images not showing) and the last update time is recent, files are currently being replaced. Try again in a few minutes. ' ]);
     fprintf(fid, ['<BR> ---------- ' ]);
     
-    for ifcst=1:forecast_count
-        Nt=FRF_Wt_ind(ifcst);
-        time_matlab = time_reference + double(waveTime(Nt))/24/60/60;  % for some reason time stamps off by 4 min 15 sec
-        cur_date=datestr(time_matlab,'yyyy-mm-ddTHH.MM.SS.Z');
-        
-        time_EDT = time_matlab-5/24;  % for some reason time stamps off by 4 min 15 sec
-        cur_date_EDT=datestr(time_EDT,'yyyy-mm-ddTHH.MM.SS');
-        
-        fname_jpg=[grid_name '_Celeris_' cur_date '.jpg'];
-        fname_gif=[grid_name '_Celeris_' cur_date '.gif'];
-        fname_gifthumb=[grid_name '_Celeris_' cur_date '_thumb.gif'];
-        anim_name=[grid_name '_Celeris_' cur_date '.avi'];
-        fnameforecast_c=[grid_name '_Celeris_' cur_date '_forecast.jpg'];
-        image_width=700;
-        
-        fprintf(fid, ['<BR> <a href="./' fname_gif '"> <img src="./' fnameforecast_c '" height="' num2str(nxiD/nyiD*image_width)  '" width="' num2str(nxiD/nyiD*image_width*fcy/fcx)  '" </a>> <a href="./' fname_gif '"> <img src="./' fname_gifthumb '" height="' num2str(nxiD/nyiD*image_width)  '" width="' num2str(image_width)  '"> </a>']);
-        fprintf(fid, ['<BR> Click on image above to view wave field animation (animated gif), or download avi file below']);
-        fprintf(fid, ['<BR> <a href="./' fname_jpg '">' fname_jpg '</a> -- Wave Surface Snapshot at forecast time ' cur_date_EDT ' EDT']);
-        fprintf(fid, ['<BR> <a href="./' anim_name '">' anim_name '</a> -- Wave Surface Animation at forecast time ' cur_date_EDT ' EDT']);
-        fprintf(fid, ['<BR> ---------- ' ]);
-    end
+    Nt=FRF_Wt_ind(ifcst);
+    time_matlab = time_reference + double(waveTime(Nt))/24/60/60;  % for some reason time stamps off by 4 min 15 sec
+    cur_date=datestr(time_matlab,'yyyy-mm-ddTHH.MM.SS.Z');
+    
+    time_EDT = time_matlab-5/24;  % for some reason time stamps off by 4 min 15 sec
+    cur_date_EDT=datestr(time_EDT,'yyyy-mm-ddTHH.MM.SS');
+    
+    fname_jpg=[grid_name '_Celeris_' cur_date '.jpg'];
+    fname_gif=[grid_name '_Celeris_' cur_date '.gif'];
+    fname_gifthumb=[grid_name '_Celeris_' cur_date '_thumb.gif'];
+    anim_name=[grid_name '_Celeris_' cur_date '.avi'];
+    fnameforecast_c=[grid_name '_Celeris_' cur_date '_forecast.jpg'];
+    image_width=700;
+    
+    fprintf(fid, ['<BR> <a href="./' fname_gif '"> <img src="./' fnameforecast_c '" height="' num2str(nxiD/nyiD*image_width)  '" width="' num2str(nxiD/nyiD*image_width*fcy/fcx)  '" </a>> <a href="./' fname_gif '"> <img src="./' fname_gifthumb '" height="' num2str(nxiD/nyiD*image_width)  '" width="' num2str(image_width)  '"> </a>']);
+    fprintf(fid, ['<BR> Click on image above to view wave field animation (animated gif), or download avi file below']);
+    fprintf(fid, ['<BR> <a href="./' fname_jpg '">' fname_jpg '</a> -- Wave Surface Snapshot at forecast time ' cur_date_EDT ' EDT']);
+    fprintf(fid, ['<BR> <a href="./' anim_name '">' anim_name '</a> -- Wave Surface Animation at forecast time ' cur_date_EDT ' EDT']);
+    fprintf(fid, ['<BR> ---------- ' ]);
+    
     fclose(fid);
     cd(cd_home)
     
@@ -560,10 +560,5 @@ while break_loop==0
     break_loop=1;  % stop the loop so it doesn't run forever!
     
     load_array
+
 end
-
-
-
-
-
-
