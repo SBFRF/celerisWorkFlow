@@ -1,0 +1,119 @@
+## 
+
+_variables: ['time_QA', 'lat', 'lon', 'station_name', 'temp_QA', 'temp_raw', 'temp_Flag', 'sal_QA', 'sal_raw', 'sal_Flag']
+_attributes: ['Station', 'manufacturer', 'model', 'serialNumber', 'nomDepth', 'sensor_nomDepth', 'nomDepth_units']
+_dimensions: ['time_QA', 'station_name_length']
+
+time_QA:
+    name: 'time'
+    units: 'seconds since 1970-01-01 00:00:00'
+    standard_name: 'time'
+    long_name: 'UTC Sample Time'
+    data_type: 'f8'
+    dim: ['time']
+    calendar: 'gregorian'
+    fill_value: '-999.99'
+
+lat:
+    name: 'lat'
+    units: 'degrees_north'
+    standard_name: 'latitude'
+    long_name: 'Latitude'
+    data_type: 'f8'
+    dim: []
+    fill_value: '-999.99'
+
+lon:
+    name: 'lon'
+    units: 'degrees_east'
+    standard_name: 'longitude'
+    long_name: 'Longitude'
+    data_type: 'f8'
+    dim: []
+    fill_value: '-999.99'
+
+temp_QA:
+    name: 'waterTemperature'
+    units: 'celsius'
+    standard_name: 'sea_water_temperature'
+    long_name: 'Sea Water Temperature'
+    data_type: 'f8'
+    coordinates: 'time'
+    dim: ['time']
+    fill_value: '-999.99'
+    short_name: 'Water Temperature'
+    coordinates: 'time'
+
+temp_raw:
+    name: 'waterTemperature_raw'
+    units: 'celsius'
+    standard_name: 'raw_sea_water_temperature'
+    long_name: 'Sea Water Temperature before QC'
+    data_type: 'f8'
+    coordinates: 'time'
+    dim: ['time']
+    fill_value: '-999.99'
+    short_name: 'Raw Water Temperature'
+    coordinates: 'time'
+    comment: Raw data before QC.
+
+temp_Flag:
+    name: 'waterTemperatureQCFlag'
+    units: ''
+    standard_name: 'QC_flag_sea_water_temperature'
+    long_name: 'Sea Water Temperature QC Flag'
+    data_type: 'f8'
+    coordinates: 'time'
+    dim: ['time']
+    fill_value: '-999.99'
+    short_name: 'Water Temperature QC Flag'
+    coordinates: 'time'
+    comment: Qartod QC flag for Temperature measurement.  1 = pass, 3 = suspect, 4 = fail, 9 = missing data. 
+      QC checks for real-time data include range test, spike test, rate of change test, and flat line test. 
+      QC checks for historical data also include additional review by an USACE Coastal Hydraulics Laboratory (CHL) reviewer.
+      
+sal_QA:
+    name: 'salinity'
+    units: 'psu'
+    standard_name: 'sea_water_salinity'
+    long_name: 'Sea Water Salinity'
+    data_type: 'f8'
+    dim: ['time']
+    fill_value: '-999.99'
+    short_name: 'Salinity'
+    coordinates: 'time'
+
+sal_raw:
+    name: 'salinity_raw'
+    units: 'psu'
+    standard_name: 'raw_sea_water_salinity'
+    long_name: 'Sea Water Salinity before QC'
+    data_type: 'f8'
+    dim: ['time']
+    fill_value: '-999.99'
+    short_name: 'Raw Salinity'
+    coordinates: 'time'
+    comment: Raw data before QC.
+
+sal_Flag:
+    name: 'salinityQCFlag'
+    units: ''
+    standard_name: 'QC_flag_raw_sea_water_salinity'
+    long_name: 'Sea Water Salinity QC Flag'
+    data_type: 'f8'
+    dim: ['time']
+    fill_value: '-999.99'
+    short_name: 'Salinity QC Flag'
+    coordinates: 'time'
+    comment: Qartod QC flag for Salinity measurement.  1 = pass, 3 = suspect, 4 = fail, 9 = missing data. 
+      QC checks for real-time data include range test, spike test, rate of change test, and flat line test. 
+      QC checks for historical data also include additional review by an USACE Coastal Hydraulics Laboratory (CHL) reviewer.
+
+station_name:
+    name: 'station_name'
+    units: ''
+    long_name: station name
+    cf_role: timeseries_id
+    short_name: station_name
+    data_type: 'S1'
+    dim: ['station_name_length']
