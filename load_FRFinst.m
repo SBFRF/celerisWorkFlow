@@ -1,4 +1,4 @@
-function [Hmo_cut_spectrum,Hmo_all,Tp]=load_FRFinst(waveStruct)
+function [Hmo_cut_spectrum,Hmo_all,Tp]=load_FRFinst(waveStruct, simTimeEpoch)
 %% load and process wave data
 %   INPUTS: 
 %       structure with assumed fields: time, Hs, Tp, frqbin
@@ -42,7 +42,7 @@ min_period=6;  % min allowable period
 min_theta=0; % min allowable theta
 max_theta=160; % max allowable theta
 
-Nt=find(time>=forecast_num_FRF,1);
+Nt=find(time>=simTimeEpoch,1);
 E_D=squeeze(E_D_all(:,:,Nt));
 
     time_reference = datenum('1970', 'yyyy');
@@ -94,6 +94,6 @@ for i=1:nf
 end
 Hmo_cut_spectrum = sqrt(Hmo)*4.004;
 Hmo_all=Hs(Nt);
-Tp=Tp(Nt);
+Tp=Tp(Nt); % waveStruct.Tp; % 
 
 

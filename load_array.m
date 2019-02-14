@@ -116,13 +116,13 @@ dataCollectionEnd = datenum(datetime(waveTime(Nt)+addTime, 'convertfrom','posixt
 % 8m-array processing
 
 index = 1:6;  %indicies of instruments to compare
-
+%% loop over inst_ind  associated with getwaveFRF 
 
 inst_ind=1;
 % x_inst_FRF(inst_ind)=917;
 array8m = getwaveFRF(dataCollectStart, dataCollectionEnd, 10);   % this could even get looped over 
 [~, ~, ~, ~, yFRF, x_inst_FRF(inst_ind)] = frfCoord(array8m.lat, array8m.lon);  % get FRF coordinates for the gauge
-[Hmo_cut_spectrum(inst_ind),Hmo_all(inst_ind),Tp_all(inst_ind)]=load_FRFinst(array8m);
+[Hmo_cut_spectrum(inst_ind),Hmo_all(inst_ind),Tp_all(inst_ind)]=load_FRFinst(array8m, waveTime(Nt));
 
 % AWAC 45 processing
 inst_ind=2;
