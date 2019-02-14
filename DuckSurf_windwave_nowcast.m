@@ -549,8 +549,8 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     
     % define fname out for netCDF file output
     fnameOut = 'TempfileName.nc';
-    globalYamlFileName = "Celeris_global.yml";
-    varYamlFileName = "phaseResolved_var.yml";
+    globalYamlFileName = 'yaml_files/CelerisGlobal.yml';
+    varYamlFileName = 'yaml_files/phaseResolvedVar.yml';
     load_array
 
 end
