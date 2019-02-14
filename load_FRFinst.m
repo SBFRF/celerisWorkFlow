@@ -1,19 +1,42 @@
-function [Hmo_cut_spectrum,Hmo_all,Tp]=load_FRFinst(fname,TpFlag,forecast_num_FRF)
+function [Hmo_cut_spectrum,Hmo_all,Tp]=load_FRFinst(waveStruct)
+%% load and process wave data
+%   INPUTS: 
+%       structure with assumed fields: time, Hs, Tp, frqbin
+%       will try directional fields: spec2D, dirbin
+%       will catch with: spec1D
+%
+%   Written by Pat Lynett, USC, modified by Spicer Bak, USACE
+%
+%% main 
 
-time=ncread(fname,'time');
-Hs=ncread(fname,'waveHs');
-if TpFlag==2
-    Tp=ncread(fname,'waveTpPeak');
-    f=ncread(fname,'waveFrequency');
-    theta=0;
-    E_D_all=ncread(fname,'waveEnergyDensity');
+% time=ncread(fname,'time');
+% Hs=ncread(fname,'waveHs');
+% if TpFlag==2
+%     Tp=ncread(fname,'waveTpPeak');
+%     f=ncread(fname,'waveFrequency');
+%     theta=0;
+%     E_D_all=ncread(fname,'waveEnergyDensity');
+%     E_D_all(:,:,1)=E_D_all;
+% else
+%     Tp=ncread(fname,'waveTp');
+%     f=ncread(fname,'waveFrequency');
+%     theta=ncread(fname,'waveDirectionBins');
+%     E_D_all=ncread(fname,'directionalWaveEnergyDensity');
+% end
+%% unpack FRF wave data structure 
+time = waveStruct.time;
+Hs = waveStruct.Hs;
+Tp = waveStruct.Tp;
+f = waveStruct.frqbin;
+try  % directional gauge
+    E_D_all = waveStruct.spec2D;
+    theta = waveStruct.dirbin;
+catch
+    E_D_all=waveStruct.spec1D;
     E_D_all(:,:,1)=E_D_all;
-else
-    Tp=ncread(fname,'waveTp');
-    f=ncread(fname,'waveFrequency');
-    theta=ncread(fname,'waveDirectionBins');
-    E_D_all=ncread(fname,'directionalWaveEnergyDensity');
 end
+
+
 
 min_period=6;  % min allowable period
 min_theta=0; % min allowable theta
@@ -25,7 +48,7 @@ E_D=squeeze(E_D_all(:,:,Nt));
     time_reference = datenum('1970', 'yyyy');
         time_EDT = time_reference + double(time(Nt))/24/60/60-5/24;  % EDT time
         
-        str1=['Nowcast Time: ' datestr(time_EDT,'yyyy-mm-dd HH:MM') ' EDT']
+        str1=['Nowcast Time: ' datestr(time_EDT,'yyyy-mm-dd HH:MM') ' EDT'];
 
 f_max=1/min_period;
 f_max_ind=find(f>f_max,1);

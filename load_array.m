@@ -110,15 +110,25 @@ dataIn.totalWaterLevelTS =  permute(runupInterp(idxStart:end), [2,1]); % time se
 
 matlab2netCDF(dataIn, globalYamlFileName, varYamlFileName, 1, fnameOut);
 %% process for gauge comparisons 
-
+addTime  =  3600; % time in seconds to determine data gathering window
+dataCollectStart = datenum(datetime(waveTime(Nt), 'convertfrom','posixtime'));
+dataCollectionEnd = datenum(datetime(waveTime(Nt)+addTime, 'convertfrom','posixtime')); % add 1 hour 
 % 8m-array processing
+
+index = 1:6;  %indicies of instruments to compare
+
+
 inst_ind=1;
-x_inst_FRF(inst_ind)=917;
-[Hmo_cut_spectrum(inst_ind),Hmo_all(inst_ind),Tp_all(inst_ind)]=load_FRFinst(fname_writeout8,1,forecast_num_FRF);
+% x_inst_FRF(inst_ind)=917;
+array8m = getwaveFRF(dataCollectStart, dataCollectionEnd, 10);   % this could even get looped over 
+[~, ~, ~, ~, yFRF, x_inst_FRF(inst_ind)] = frfCoord(array8m.lat, array8m.lon);  % get FRF coordinates for the gauge
+[Hmo_cut_spectrum(inst_ind),Hmo_all(inst_ind),Tp_all(inst_ind)]=load_FRFinst(array8m);
 
 % AWAC 45 processing
 inst_ind=2;
-x_inst_FRF(inst_ind)=400;
+awac45m = getwaveFRF(dataCollectStart, dataCollectionEnd, 8);   % this could even get looped over 
+
+% x_inst_FRF(inst_ind)=400;
 [Hmo_cut_spectrum(inst_ind),Hmo_all(inst_ind),Tp_all(inst_ind)]=load_FRFinst(fname_writeout45,1,forecast_num_FRF);
 
 % % ADOP 35 processing 
