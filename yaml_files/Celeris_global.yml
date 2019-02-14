@@ -1,18 +1,13 @@
 cdm_data_type: Station
 featureType:  timeSeries
-title: FRF Currituck Sound, CS01 SBE26+ waves
+title: Celeris bousinessq model 
 summary: >
-   USACE/CHL/COAB collected non-directional wave data using a Seabird Electronics SBE26+
-   pressure sensor at Currituck Sound station CS01. Record are collected every half hour 
-   in bursts of 4096 samples collected at 4 Hz. Frequency spectra were computed using 512 point 
-   ensembles and the Welch method of 50% ensemble overlap.  Spectra were smoothed with 
-   3-point frequency band averaging then interpolated to 0.01 Hz bands between 0.04 and 
-   0.5 Hz. A linear wave theory pressure correction (PRF) is applied to the pressure spectra 
-   to get surface variance spectra. PRF corrections exceeding 100x in energy are not applied 
-   at the high frequency end of the spectra.
+   USACE/CHL/COAB/CMTB run celeris model.  If you're going to use these data PLEASE contact me, I'm happy to share and work with people, but want to make sure model data are used responsibly
+   
+source: Celeris 1.0 Alpha
+sourceUrl:  https://github.com/SasanTV/Celeris
+project:  USACE/FRF Coastal Model Test Bed 
 history: USACE/FRF
-source: In situ observations from FRF-ocean_waves_CS01-SBE26_YYYYMM.mat
-sourceUrl:  (local files)
 standard_name_vocabulary:  CFv25
 Metadata_Conventions:  "Unidata Dataset Discovery v1.0, CF-1.6"
 metadata_link: N/A
@@ -48,8 +43,6 @@ naming_authority:  FRF
 origin:  USACE/CHL/COAB
 date_created:  
 date_issued:  
-project:  USACE/FRF observations
-id: FRF-ocean_waves_CS01-SBE26
 acknowledgement: Data are provided by the Coastal Observations and Analysis Branch, Coastal and Hydraulics Laboratory, US Army Corps of Engineers, Duck, North Carolina.
 processing_level:  L1
 geospatial_vertical_units:  m
@@ -64,19 +57,9 @@ geospatial_lat_units: degrees_north
 geospatial_lon_min: -75.766298
 geospatial_lon_max: -75.766298
 geospatial_lon_units:  degrees_east
-time_coverage_start: '2016-02-17T19:50:00Z'
+time_coverage_start: '2015-10-01T00:00:00Z'
 time_coverage_end: 'present'
-deployment_start: '2016-02-17T19:50:00Z'
-deployment_end: 'present'
 nomDepth_units: m
-nomDepth: 3.4
-sensor_nomDepth: 0.94
-serialNumber: 1084
-waveInterval_units: s
-waveInterval: 1800
-waveSamples: 4096
-sampleRate_units: Hz
-sampleRate: 4
 cross_shore_angle_units: NA
 cross_shore_angle_description: NA
 cross_shore_angle: NA

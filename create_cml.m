@@ -1,5 +1,4 @@
-function create_cml(file_name_cml,timestep,Mannings_n,m_width,m_length,nx,ny,wave_type,H,T,theta,xc,yc,bc,sponge,min_depth,brk1,brk2,inst_ind,range_x,range_y)
-
+function create_cml(file_name_cml,timestep,Mannings_n,m_width,m_length,nx,ny,wave_type,H,T,theta,xc,yc,bc,sponge,min_depth,brk1,brk2,inst_ind,range_x,range_y,Courant_c)
 
 fileID = fopen(file_name_cml,'w');
 
@@ -9,7 +8,7 @@ line2='<Experiment>\n';
 line3='    <name>USC Coastal Waves Forecast</name>\n';
 line4='    <!-- Settings for Model -->\n';
 line5='    <model type = "BSNQ">\n';
-line6=['        <parameters epsilon = ' num2str(min_depth) ' Theta = 2.0 correctionStepsNum = 0 timestep = ' num2str(timestep) '  adaptive = false></parameters>\n'];
+line6=['        <parameters epsilon = ' num2str(min_depth) ' Theta = 2.0 correctionStepsNum = 0 timestep = ' num2str(timestep) '  adaptive = true></parameters>\n'];
 line7=['        <friction type = "Quadratic" coef = ' num2str(Mannings_n) '></friction>\n'];
 line8=['    </model>\n'];
 
@@ -55,7 +54,7 @@ for i=1:4
     elseif bc_c==3 % single harmonic wave
         linec=['	<' cboundry ' type = "SineWave"  seaLevel = 0 widthNum = 2><sineWave amplitude = ' num2str(H/2) ' period = ' num2str(T) ' theta = ' num2str(theta) '></sineWave></' cboundry '>\n'];
     elseif bc_c==4 % irregular wave
-        linec=['	<' cboundry ' type = "IrregularWaves" seaLevel = 0 widthNum = 2><filePath> irrWaves.txt </filePath></' cboundry '>\n'];
+        linec=['	<' cboundry ' type = "IrregularWaves" seaLevel = 0 widthNum = 5><filePath> irrWaves.txt </filePath></' cboundry '>\n'];
     elseif bc_c==5 % time series input
         linec=['	<' cboundry ' type = "UniformTimeSeries" seaLevel = 0 widthNum =><filePath> InputTS.txt </filePath></' cboundry '>\n'];
     end
@@ -67,7 +66,9 @@ end
 line23=['\n'];
 
 line24=['	<!-- Settings for Logging Data-->\n'];
-line25=['	<logData doLog = true logStep = 20>\n'];
+
+logStep=20; % provides enough points
+line25=['	<logData doLog = true logStep = ' num2str(logStep) '>\n'];
 line26=['		<logPath> </logPath>\n'];
 
 line27=['		<range filename = "array"><bottomLeft x = ' num2str(range_x(1)) ' y = ' num2str(range_y) '></bottomLeft><topRight x = ' num2str(range_x(2)) ' y = ' num2str(range_y) '></topRight></range>\n'];

@@ -14,7 +14,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     %% INPUTS:
     forecast_count=1;  % only forecast for most recent data, can loop across this variable if more times desired
     num_frames=300; % num frames to inlcude in animation
-    vizCount = 3; % this will run 3 sims if just 1, will run with below order
+    vizCount = 1; % this will run 3 sims if just 1, will run with below order
     %=1 colored eta %=2 colored vorticity %=3 photorealistic
     dataPrefix = "datafiles";  % this is where all forcing data will live
     %% gloabals
@@ -104,8 +104,8 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     disp([' NOWCAST: gathering data locally from THREDDS'])
     disp([' NOWCAST: getdata more efficently'])
     fname_thredds=['FRF-ocean_waves_8m-array_' fname_year fname_month '.nc'];
-    fname_writeout='FRF_8m-array.nc';
-    eval([' ! wget --output-document  ' fname_writeout ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waves/8m-array/' fname_year '/' fname_thredds '"'])
+    fname_writeout8='FRF_8m-array.nc';
+    eval([' ! wget --output-document  ' fname_writeout8 ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waves/8m-array/' fname_year '/' fname_thredds '"'])
     
     fname_thredds45=['FRF-ocean_waves_awac-4.5m_' fname_year fname_month '.nc'];
     fname_writeout45='FRF_awac-45m.nc';
@@ -135,7 +135,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     pier_image=imread('pier.jpg');
     [px,py,pz]=size(pier_image);
         
-    load_FRFwave(fname_writeout)
+    load_FRFwave(fname_writeout8)
     load FRFwave_forecast.mat
     disp(['Water depth at FRF nowcast offshore boundary (m): ' num2str(nominaldepth)])
     
@@ -170,21 +170,11 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     
     % add value here for storm surge, tide - any sort of constant water level
     % change for entire domain
-    water_level_change=0;  %(m), all grids at NAVD datum, dummy value here for now
+    water_level_change=interp1(tideTime,tide_meas,waveTime(Nt));
+    %(m), all grids at NAVD datum,
     % Now do bathy  ______________________________________
     % load the pre-formatting mat file containing bathy/topo data
     % disp(['Shifting bathy to account for tide level of (m-NAVD88): ' num2str(water_level_change)])
-%     cd(['bathy\' char(dir_names(choice))])  % change to local database directory, where the "celeris_bathy.mat" is located
-%     bathy_date_str=[cur_date(1:4) cur_date(6:7) cur_date(9:10)];
-%     load_nc_duck_CMTB(waveTime(Nt))
-%     load celeris_bathy.mat
-%     cd(cd_home)
-%     
-%     H_toobig_factor=1; % init for first bathy pass through
-%     load_bathy  % run bathy load script
-%     bathyimage=imread('bathytopo.jpg');
-%     [bx,by,bz]=size(bathyimage);
-
     
     %%
     %clean and create output directory
@@ -195,7 +185,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     end
     pause(2)  % allow dropbox to figure it out
     mkdir(frames_dir)
-    %%
+    %% Set indicies and time properly 
     % start forecast loop -- removed
     ifcst = 1;
     Nt=FRF_Wt_ind(ifcst);
@@ -259,7 +249,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     time_EDT = time_reference + double(waveTime(Nt))/24/60/60-5/24;  % EDT time
     str1=['Nowcast Time: ' datestr(time_EDT,'yyyy-mm-dd HH:MM') ' EDT'];
     str2=['Plot Generated on: ' datestr(now,'yyyy-mm-dd HH:MM') ' PDT'];
-    title({str1; str2},'FontSize',5,'fontweight','bold')
+    title({str1; str2},'FontSize',5,'fontweight','bold');
     set(gca,'fontsize',5)
     
     subplot(4,1,2)
@@ -291,7 +281,6 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     hold on
     plot([cur_timeZ cur_timeZ],[-10 500],'--g','LineWidth',1)
     
-    water_level_change=interp1(tideTime,tide_meas,waveTime(Nt));
     
     plot(time_reference + double(waveTime(Nt))/24/60/60,water_level_change,'r.','MarkerSize',15)
     plot(time_reference + double(tideTime)/24/60/60,tide_pred)
@@ -376,7 +365,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     wave_type=2; %=1 for solitary wave, =2 for sine wave through boundary
     xco=0; % defines the initial x-location (m) of the crest of the solitary wave
     yco=0; % defines the initial y-location (m) of the crest of the solitary wave
-    for nviz=vizCount
+    for nviz=1:vizCount
         % how many CML files do i need to create?
         if nviz==1
             create_cml(file_name_cml,timestep,Mannings_n,m_width,m_length,nx,ny,wave_type,H_plot_cbar,T,theta,xco,yco,bc,sponge,min_depth,brk1,brk2,inst_ind,range_x,range_y,Courant)
@@ -385,7 +374,6 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
         elseif nviz==3
             create_cml_photorealistic(file_name_cml,timestep,Mannings_n,m_width,m_length,nx,ny,wave_type,H_plot_cbar,T,theta,xco,yco,bc,sponge,min_depth,brk1,brk2,inst_ind,range_x,range_y,Courant)
         end
-        create_cml(file_name_cml,timestep,Mannings_n,m_width,m_length,nx,ny,wave_type,H_plot_cbar,T,theta,xco,yco,bc,sponge,min_depth,brk1,brk2,inst_ind,range_x,range_y)
         
         delete array.txt
         delete time_axis.txt
@@ -396,7 +384,8 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
         % for some reason the straight call doesnt always maximize.
         % Force with robot
         tic
-        disp([' Model Running... please wait' sim_time ' seconds'])
+        fprintf(' Model Running... please wait %d seconds\n', sim_time)
+        
         import java.awt.*;
         import java.awt.event.*;
         rob=Robot;
@@ -547,7 +536,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     fprintf(fid, ['<BR> ---------- ' ]);
     
     fclose(fid);
-    cd(cd_home)
+    cd(cd_home);
     
     % copy files to http
     http_dir=[cd_http grid_name];
@@ -557,8 +546,11 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     eval(['copyfile ' frames_dir '\*.* ' http_dir])
     
     disp(['MAKE NETCDF FILES HERE!~!'])
-    break_loop=1;  % stop the loop so it doesn't run forever!
     
+    % define fname out for netCDF file output
+    fnameOut = 'TempfileName.nc';
+    globalYamlFileName = "Celeris_global.yml";
+    varYamlFileName = "phaseResolved_var.yml";
     load_array
 
 end

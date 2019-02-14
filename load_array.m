@@ -1,16 +1,36 @@
 % loads to-file output from Celeris
-function load_array(fnameOut)
+% written by Pat Lynett, USC and modified Spicer Bak, USACE 
 
 load time_axis.txt -ascii
 load array.txt -ascii
+freqInterp = 0.5;  % what resolution do we need to sample the timeseries output at 
+tEnd =17; %[m] always Take the last 17 minutes of runtime (determined by repeat time)
 
+% parse out spatial time series
 x_ind=array(:,1);
 y_ind=array(:,2);
 etacol=array(:,3);
+pcol = array(:, 4); % total water depth * u 
+qcol = array(:, 5); % total water depth * v
+timeArray = time_axis(:); % parse out time
 
+%% 
 numx=max(x_ind)-min(x_ind)+1;
 numy=max(y_ind)-min(y_ind)+1;
+nt=length(time_axis);
+eta=zeros(numx,numy,nt);
+p = zeros(numx,numy,nt);
+q = zeros(numx,numy,nt);
+block=numx*numy;
+for n=1:nt
+    bs=1+(n-1)*block;
+    be=n*block;
+    eta(:,:,n)=reshape(etacol(bs:be),[numx,numy]);
+    p(:,:,n)=reshape(pcol(bs:be), [numx, numy]);
+    q(:,:,n)=reshape(qcol(bs:be), [numx, numy]);
+end
 
+%% load instrument positions
 min_x_inst=min(instruments(:,1));
 max_x_inst=max(instruments(:,1));
 min_y_inst=min(instruments(:,2));
@@ -18,51 +38,77 @@ max_y_inst=max(instruments(:,2));
 dx_inst=(max_x_inst-min_x_inst)/(numx-1);
 x_inst=[min_x_inst:dx_inst:max_x_inst]+xoffset;
 y_inst=instruments(1,2)+yoffset;
-
-nt=length(time_axis);
-eta=zeros(numx,numy,nt);
-block=numx*numy;
+%% calculate runup 
+ho=squeeze(eta(:,1,1));  % original Depth 
+Total_depth=squeeze(eta(:,1,:))'-ho';
+shore_ie=find(ho<=0.001,1);
+min_depth=0.01;
+runup=zeros(nt,1);
 for n=1:nt
-    bs=1+(n-1)*block;
-    be=n*block;
-    eta(:,:,n)=reshape(etacol(bs:be),[numx,numy]);
+    for i=shore_ie:-1:1
+        if Total_depth(i)<min_depth
+            runup(n)=squeeze(eta(i,1,n))';
+            break
+        end
+    end
 end
+runup_trunc=runup(:)+water_level_change;
+[R2]=calc_runup_dist(runup_trunc) ;
 
- for n=1:2710 %nt
-     plot(x_inst,squeeze(eta(:,1,n))'-ho')
-     axis([-100 110 -Inf Inf])
-     pause(.1)
- end
- ho=squeeze(eta(:,1,1));
- Total_depth=squeeze(eta(:,1,:))'-ho';
- shore_ie=find(ho<=0.001,1);
- min_depth=0.01;
- for n=1:2710
-     for i=shore_ie:-1:1
-         if Total_depth(i)<min_depth
-             runup(n)=squeeze(eta(i,1,n))';
-             break
-         end
-     end
- end
-
-plot(runup)
+ho_dry=ho(1:shore_ie)+water_level_change;
+xFRF_dry=x_inst(1:shore_ie);
 
 Hs=zeros(numx,numy);
 zmean=Hs;
 Tp=Hs;
 Tm=Hs;
 
-nt_start=round(nt/6);
 for i=1:numx
     for j=1:numy
+%        [Hs(i,j),zmean(i,j),Tp(i,j),Tm(i,j),f,Se,f_ave,S_ave]=spectral(outTime(idxStart:end), squeeze(eta(i,j,idxStart:end))');
         [Hs(i,j),zmean(i,j),Tp(i,j),Tm(i,j),f,Se,f_ave,S_ave]=spectral(time_axis(nt_start:nt),squeeze(eta(i,j,nt_start:nt))');
     end
 end
+%% now Interpolate time series to regular output to force time
+% to the same length
+
+outTime = 1:freqInterp:timeArray(end);
+if outTime(end)/60 > tEnd
+    idxStart = length(outTime)-tEnd*60/freqInterp;
+else % if the simulation is shorter than tEnd
+    idxStart = 1; 
+end 
+etaInterp = interp2(squeeze(x_inst), squeeze(timeArray), squeeze(eta)',  x_inst, outTime', 'spline');
+uInterp = interp2(squeeze(x_inst), squeeze(timeArray), squeeze(p)', x_inst, outTime', 'spline'); % total water depth * u 
+vInterp = interp2(squeeze(x_inst), squeeze(timeArray), squeeze(q)', x_inst, outTime', 'spline'); % total water depth * v
+runupInterp = interp1(squeeze(timeArray), squeeze(runup), outTime', 'spline');
+% if you're going change grid resolution, we may need to interpolate in x/y 
 %% Write NetCDF output
+disp(['making netCDF file ' fnameOut])
+if exist('netCDFcode', 'dir')
+    addpath(genpath('netCDFcode'))
+else
+    error('netCDF package not Found!  Please add netCDFcode to your search path');
+end
+if exist('yaml_files', 'dir')
+    addpath(genpath('yaml_files'))
+else
+    error('netCDF package not Found!  Please add netCDFcode to your search path');
+end
 
+%add waterlevelchange to eta to get navd88 
+dataIn.time = waveTime(Nt);
+dataIn.tsTime = squeeze(outTime(idxStart:end));
+dataIn.eta = permute(water_level_change + etaInterp(idxStart:end, : ), [3, 1, 2]);  
+dataIn.currentU = permute(uInterp, [3, 1, 2]);
+dataIn.velocity = permute(vInterp, [3, 1, 2]);
+dataIn.xFRF = x_inst;
+dataIn.yFRF = y_inst;
+dataIn.station_name = "celeris Model";
+dataIn.totalWaterLevel = permute(R2, [2,1]) ;
+dataIn.totalWaterLevelTS =  permute(runupInterp(idxStart:end), [2,1]); % time series
 
-
+matlab2netCDF(dataIn, globalYamlFileName, varYamlFileName, 1, fnameOut);
 %% process for gauge comparisons 
 
 % 8m-array processing
@@ -75,7 +121,7 @@ inst_ind=2;
 x_inst_FRF(inst_ind)=400;
 [Hmo_cut_spectrum(inst_ind),Hmo_all(inst_ind),Tp_all(inst_ind)]=load_FRFinst(fname_writeout45,1,forecast_num_FRF);
 
-% % ADOP 35 processing
+% % ADOP 35 processing 
 % inst_ind=3;
 % x_inst_FRF(inst_ind)=300;
 % [Hmo_cut_spectrum(inst_ind),Hmo_all(inst_ind),Tp_all(inst_ind)]=load_FRFinst(fname_writeout35,1);
@@ -86,7 +132,7 @@ x_inst_FRF(inst_ind)=400;
 % [Hmo_cut_spectrum(inst_ind),Hmo_all(inst_ind),Tp_all(inst_ind)]=load_FRFinst(fname_writeout19,2);
 
 % Lidar Hydro
-fname_lidar='FRF-ocean_waves_lidarHydrodynamics_201901.nc'
+fname_lidar='FRF-ocean_waves_lidarHydrodynamics_201901.nc';
 load_FRFwave_lidar(fname_lidar);
 load FRFwave_forecast_lidar.mat
 Nt_lidar=find(waveTime>=forecast_num_FRF,1);
@@ -95,7 +141,7 @@ time_EDT = time_reference + double(waveTime(Nt_lidar))/24/60/60-5/24;  % EDT tim
 str1=['Nowcast Time: ' datestr(time_EDT,'yyyy-mm-dd HH:MM') ' EDT'];
 
 % Lidar Runup
-fname_lidar='FRF-ocean_waves_lidarRunup_201901.nc';
+fname_lidar='FRF-ocean_waves_lidarRunup_201901.nc'; 
 load_FRFwave_lidar(fname_lidar);
 load FRFwave_forecast_lidar.mat
 
@@ -111,7 +157,7 @@ title('Model-Data Comparison along y_{FRF}=940 m')
 xlabel('x_{FRF} [m]')
 ylabel('Elevation [m]')
 legend('Modeled H_s','Modeled setup x 10','Observed H_s (onshore only, >6s)','Observed H_s (all)','Lidar Hs','Lidar Setup','Location','SouthEast')
-end 
+
 
 
 

@@ -9,7 +9,7 @@ line2='<Experiment>\n';
 line3='    <name>USC Coastal Waves Forecast</name>\n';
 line4='    <!-- Settings for Model -->\n';
 line5='    <model type = "BSNQ">\n';
-line6=['        <parameters epsilon = ' num2str(min_depth) ' Theta = 2.0 correctionStepsNum = 0 timestep = ' num2str(timestep) '  adaptive = false></parameters>\n'];
+line6=['        <parameters epsilon = ' num2str(min_depth) ' Theta = 2.0 correctionStepsNum = 0 timestep = ' num2str(timestep) '  adaptive = true></parameters>\n'];
 line7=['        <friction type = "Quadratic" coef = ' num2str(Mannings_n) '></friction>\n'];
 line8=['    </model>\n'];
 
@@ -68,7 +68,7 @@ line23=['\n'];
 
 line24=['	<!-- Settings for Logging Data-->\n'];
 
-logStep=2/Courant_c; % provides enough points
+logStep=20; % provides enough points
 line25=['	<logData doLog = true logStep = ' num2str(logStep) '>\n'];
 line26=['		<logPath> </logPath>\n'];
 
