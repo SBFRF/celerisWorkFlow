@@ -29,11 +29,13 @@ Hs = waveStruct.Hs;
 Tp = waveStruct.Tp;
 f = waveStruct.frqbin;
 try  % directional gauge
-    E_D_all = waveStruct.spec2D;
+    E_D_all = permute(waveStruct.spec2D, [3,2,1]);
     theta = waveStruct.dirbin;
+    TpFlag = 1;
 catch
-    E_D_all=waveStruct.spec1D;
+    E_D_all=permute(waveStruct.spec1D, [2,1]);
     E_D_all(:,:,1)=E_D_all;
+    TpFlag = 2;
 end
 
 
@@ -42,13 +44,13 @@ min_period=6;  % min allowable period
 min_theta=0; % min allowable theta
 max_theta=160; % max allowable theta
 
-Nt=find(time>=simTimeEpoch,1);
+Nt=find(time>=simTimeEpoch/24/60/60 +  datenum('1970', 'yyyy'),1);
 E_D=squeeze(E_D_all(:,:,Nt));
 
     time_reference = datenum('1970', 'yyyy');
-        time_EDT = time_reference + double(time(Nt))/24/60/60-5/24;  % EDT time
+    time_EDT = time_reference + double(time(Nt))/24/60/60-5/24;  % EDT time
         
-        str1=['Nowcast Time: ' datestr(time_EDT,'yyyy-mm-dd HH:MM') ' EDT'];
+    str1=['Nowcast Time: ' datestr(time_EDT,'yyyy-mm-dd HH:MM') ' EDT'];
 
 f_max=1/min_period;
 f_max_ind=find(f>f_max,1);

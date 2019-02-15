@@ -17,12 +17,17 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     vizCount = 1; % this will run 3 sims if just 1, will run with below order
     %=1 colored eta %=2 colored vorticity %=3 photorealistic
     dataPrefix = "datafiles";  % this is where all forcing data will live
+    addTime  =  3600;
     %% gloabals
     % default values for all simulations:
     Courant=0.075;  % Courant number, controls time step
     Mannings_n=0.0035;  % Friction factor, quadratic law friction factor f/2*H*u^2
     min_depth=1e-5; % minimum depth allowable, in m, typically < 1/1000 of "offshore depth"
     
+    dataCollectStart = datenum(datetime(forecast_date, 'InputFormat','yyyy-mm-dd''T''HH.mm.ss''.Z'));
+    dataCollectionEnd = datenum(datetime(forecast_date, 'InputFormat','yyyy-mm-dd''T''HH.mm.ss''.Z')+addTime); % add 1 hour 
+
+
     % screen-size, for screen capture visualizations
     ss=get(0,'ScreenSize');
     % resol=[1920 830];
@@ -53,7 +58,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     cd_home=cd;
     cd_http=[cd '\output_http\'];
     cur_timeZ=now+datenum(2010,1,1,7,0,0)-datenum(2010,1,1,0,0,0);  % simulation / forecast time
-    
+
     % Load location-specifc parameters
     choice=1;
     
@@ -102,23 +107,23 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     end
     % Get wave data  ____________________________________
     disp([' NOWCAST: gathering data locally from THREDDS'])
-    disp([' NOWCAST: getdata more efficently'])
-    fname_thredds=['FRF-ocean_waves_8m-array_' fname_year fname_month '.nc'];
-    fname_writeout8='FRF_8m-array.nc';
-    eval([' ! wget --output-document  ' fname_writeout8 ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waves/8m-array/' fname_year '/' fname_thredds '"'])
-    
-    fname_thredds45=['FRF-ocean_waves_awac-4.5m_' fname_year fname_month '.nc'];
-    fname_writeout45='FRF_awac-45m.nc';
-    eval([' ! wget --output-document ' fname_writeout45 ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waves/awac-4.5m/' fname_year '/' fname_thredds45 '"'])
-    
-    fname_thredds35=['FRF-ocean_waves_adop-3.5m_' fname_year fname_month '.nc'];
-    fname_writeout35= 'FRF_adop-35m.nc';
-    eval([' ! wget --output-document ' fname_writeout35 ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waves/adop-3.5m/' fname_year '/' fname_thredds35 '"'])
-    
-    fname_thredds19=['FRF-ocean_waves_xp125m_' fname_year fname_month '.nc'];
-    fname_writeout19= 'FRF_xp-19m.nc';
-    eval([' ! wget --output-document ' fname_writeout19 ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waves/xp125m/' fname_year '/' fname_thredds19 '"'])
-    
+%     disp([' NOWCAST: getdata more efficently'])
+%     fname_thredds=['FRF-ocean_waves_8m-array_' fname_year fname_month '.nc'];
+%     fname_writeout8='FRF_8m-array.nc';
+%     eval([' ! wget --output-document  ' fname_writeout8 ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waves/8m-array/' fname_year '/' fname_thredds '"'])
+%     
+%     fname_thredds45=['FRF-ocean_waves_awac-4.5m_' fname_year fname_month '.nc'];
+%     fname_writeout45='FRF_awac-45m.nc';
+%     eval([' ! wget --output-document ' fname_writeout45 ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waves/awac-4.5m/' fname_year '/' fname_thredds45 '"'])
+%     
+%     fname_thredds35=['FRF-ocean_waves_adop-3.5m_' fname_year fname_month '.nc'];
+%     fname_writeout35= 'FRF_adop-35m.nc';
+%     eval([' ! wget --output-document ' fname_writeout35 ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waves/adop-3.5m/' fname_year '/' fname_thredds35 '"'])
+%     
+%     fname_thredds19=['FRF-ocean_waves_xp125m_' fname_year fname_month '.nc'];
+%     fname_writeout19= 'FRF_xp-19m.nc';
+%     eval([' ! wget --output-document ' fname_writeout19 ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waves/xp125m/' fname_year '/' fname_thredds19 '"'])
+
     % get webcam image at this time ______________________
     no_webcam_image=0;
     try
@@ -134,8 +139,12 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     end
     pier_image=imread('pier.jpg');
     [px,py,pz]=size(pier_image);
-        
-    load_FRFwave(fname_writeout8)
+    
+    
+    array8m = getwaveFRF(dataCollectStart, dataCollectionEnd, 10);   
+%     [~, ~, ~, ~, yFRF, x_inst_FRF(inst_ind)] = frfCoord(array8m.lat, array8m.lon);  % get FRF coordinates for the gauge
+%     [Hmo_cut_spectrum(inst_ind),Hmo_all(inst_ind),Tp_all(inst_ind)]=load_FRFinst(array8m, waveTime(Nt));
+    load_FRFwave(array8m)
     load FRFwave_forecast.mat
     disp(['Water depth at FRF nowcast offshore boundary (m): ' num2str(nominaldepth)])
     
@@ -157,10 +166,12 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     fname_thredds_tide=['FRF-ocean_waterlevel_eopNoaaTide_' fname_year fname_month '.nc'];
     fname_writeout_tide='FRF_tides.nc';
     eval([' ! wget --output-document ' fname_writeout_tide ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waterlevel/eopNoaaTide/' fname_year '/' fname_thredds_tide '"'])
+    % here's what get WL would need to replace 
+    WLdata = getWLFRF(datenum(startSimdatetime), datenum(endSimdatetime), 1);
     
-    tideTime=ncread(fname_writeout_tide,'time');
-    waterlevel=ncread(fname_writeout_tide,'waterLevel');
-    pred_waterlevel=ncread(fname_writeout_tide,'predictedWaterLevel');
+    tideTime=WL.time; % ncread(fname_writeout_tide,'time');
+    waterlevel=WL.WL; %ncread(fname_writeout_tide,'waterLevel');
+    pred_waterlevel=WL.PredictedWL; %ncread(fname_writeout_tide,'predictedWaterLevel');
     
     % load predictions NAVD88
     tide_pred=pred_waterlevel;
@@ -170,7 +181,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     
     % add value here for storm surge, tide - any sort of constant water level
     % change for entire domain
-    water_level_change=interp1(tideTime,tide_meas,waveTime(Nt));
+    water_level_change=interp1(tideTime, tide_meas,waveTime(Nt));
     %(m), all grids at NAVD datum,
     % Now do bathy  ______________________________________
     % load the pre-formatting mat file containing bathy/topo data
@@ -546,9 +557,10 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     eval(['copyfile ' frames_dir '\*.* ' http_dir])
     
     disp(['MAKE NETCDF FILES HERE!~!'])
-    
+    datestrout = datestr(cur_timeZ,'yyyy-mm-ddTHHMMSSZ');
     % define fname out for netCDF file output
-    fnameOut = 'TempfileName.nc';
+    ncFilename = sprintf('CMTB-waveModels_CELERIS_base_spatial_%s.nc', datestrout);
+    fnameOut = ['D:\celeris_output\' ncFilename ];
     globalYamlFileName = 'yaml_files/CelerisGlobal.yml';
     varYamlFileName = 'yaml_files/phaseResolvedVar.yml';
     load_array

@@ -113,61 +113,70 @@ matlab2netCDF(dataIn, globalYamlFileName, varYamlFileName, 1, fnameOut);
 addTime  =  3600; % time in seconds to determine data gathering window
 dataCollectStart = datenum(datetime(waveTime(Nt), 'convertfrom','posixtime'));
 dataCollectionEnd = datenum(datetime(waveTime(Nt)+addTime, 'convertfrom','posixtime')); % add 1 hour 
-% 8m-array processing
 
-index = 1:6;  %indicies of instruments to compare
-%% loop over inst_ind  associated with getwaveFRF 
-
-inst_ind=1;
-% x_inst_FRF(inst_ind)=917;
-array8m = getwaveFRF(dataCollectStart, dataCollectionEnd, 10);   % this could even get looped over 
-[~, ~, ~, ~, yFRF, x_inst_FRF(inst_ind)] = frfCoord(array8m.lat, array8m.lon);  % get FRF coordinates for the gauge
-[Hmo_cut_spectrum(inst_ind),Hmo_all(inst_ind),Tp_all(inst_ind)]=load_FRFinst(array8m, waveTime(Nt));
-
-% AWAC 45 processing
-inst_ind=2;
-awac45m = getwaveFRF(dataCollectStart, dataCollectionEnd, 8);   % this could even get looped over 
-
-% x_inst_FRF(inst_ind)=400;
-[Hmo_cut_spectrum(inst_ind),Hmo_all(inst_ind),Tp_all(inst_ind)]=load_FRFinst(fname_writeout45,1,forecast_num_FRF);
-
-% % ADOP 35 processing 
-% inst_ind=3;
-% x_inst_FRF(inst_ind)=300;
-% [Hmo_cut_spectrum(inst_ind),Hmo_all(inst_ind),Tp_all(inst_ind)]=load_FRFinst(fname_writeout35,1);
-% 
+% loop over inst_ind  associated with getwaveFRF 
+% index = 1:6;  %indicies of instruments to compare
+try
+    % 8m-array processing
+    % x_inst_FRF(inst_ind)=917;
+    inst_ind=1;
+    array8m = getwaveFRF(dataCollectStart, dataCollectionEnd, 10);   % this could even get looped over
+    [~, ~, ~, ~, yFRF, x_inst_FRF(inst_ind)] = frfCoord(array8m.lat, array8m.lon);  % get FRF coordinates for the gauge
+    [Hmo_cut_spectrum(inst_ind),Hmo_all(inst_ind),Tp_all(inst_ind)]=load_FRFinst(array8m, waveTime(Nt));
+catch
+end
+try
+    % AWAC 45 processing
+    % x_inst_FRF(inst_ind)=400;
+    inst_ind=2;
+    awac45m = getwaveFRF(dataCollectStart, dataCollectionEnd, 8);   % this could even get looped over
+    [~, ~, ~, ~, yFRF, x_inst_FRF(inst_ind)] = frfCoord(awac45m.lat, awac45m.lon);  % get FRF coordinates for the gauge
+    [Hmo_cut_spectrum(inst_ind),Hmo_all(inst_ind),Tp_all(inst_ind)]=load_FRFinst(awac45m, waveTime(Nt));
+catch
+end
+try
+    % % ADOP 35 processing
+    % x_inst_FRF(inst_ind)=300;
+    inst_ind=3;
+    adop35m = getwaveFRF(dataCollectStart, dataCollectionEnd, 8);   % this could even get looped over
+    [~, ~, ~, ~, yFRF, x_inst_FRF(inst_ind)] = frfCoord(adop35m.lat, adop35m.lon);  % get FRF coordinates for the gauge
+    [Hmo_cut_spectrum(inst_ind),Hmo_all(inst_ind),Tp_all(inst_ind)]=load_FRFinst(adop35m,waveTime(Nt));
+catch
+end
+%
 % % XP 125m processing
 % inst_ind=4;
 % x_inst_FRF(inst_ind)=125;
 % [Hmo_cut_spectrum(inst_ind),Hmo_all(inst_ind),Tp_all(inst_ind)]=load_FRFinst(fname_writeout19,2);
-
-% Lidar Hydro
-fname_lidar='FRF-ocean_waves_lidarHydrodynamics_201901.nc';
-load_FRFwave_lidar(fname_lidar);
-load FRFwave_forecast_lidar.mat
-Nt_lidar=find(waveTime>=forecast_num_FRF,1);
-time_reference = datenum('1970', 'yyyy');
-time_EDT = time_reference + double(waveTime(Nt_lidar))/24/60/60-5/24;  % EDT time
-str1=['Nowcast Time: ' datestr(time_EDT,'yyyy-mm-dd HH:MM') ' EDT'];
-
-% Lidar Runup
-fname_lidar='FRF-ocean_waves_lidarRunup_201901.nc'; 
-load_FRFwave_lidar(fname_lidar);
-load FRFwave_forecast_lidar.mat
-
-hf6=figure(6);
-clf
-plot(x_inst,Hs(:,1), x_inst,1*(zmean(:,1)+water_level_change))
-hold on
-plot(x_inst_FRF,Hmo_cut_spectrum,'ro')
-plot(x_inst_FRF,Hmo_all,'go')
-plot(xFRF,waveHsTotal(:,Nt_lidar),'g-','LineWidth',2)
-plot(xFRF,1*waterLevel(:,Nt_lidar),'b-','LineWidth',2)
-title('Model-Data Comparison along y_{FRF}=940 m')
-xlabel('x_{FRF} [m]')
-ylabel('Elevation [m]')
-legend('Modeled H_s','Modeled setup x 10','Observed H_s (onshore only, >6s)','Observed H_s (all)','Lidar Hs','Lidar Setup','Location','SouthEast')
-
+try
+    % Lidar Hydro
+    fname_lidar='FRF-ocean_waves_lidarHydrodynamics_201901.nc';
+    load_FRFwave_lidar(fname_lidar);
+    load FRFwave_forecast_lidar.mat
+    Nt_lidar=find(waveTime>=forecast_num_FRF,1);
+    time_reference = datenum('1970', 'yyyy');
+    time_EDT = time_reference + double(waveTime(Nt_lidar))/24/60/60-5/24;  % EDT time
+    str1=['Nowcast Time: ' datestr(time_EDT,'yyyy-mm-dd HH:MM') ' EDT'];
+    
+    % Lidar Runup
+    fname_lidar='FRF-ocean_waves_lidarRunup_201901.nc';
+    load_FRFwave_lidar(fname_lidar);
+    load FRFwave_forecast_lidar.mat
+    
+    hf6=figure(6);
+    clf
+    plot(x_inst,Hs(:,1), x_inst,1*(zmean(:,1)+water_level_change))
+    hold on
+    plot(x_inst_FRF,Hmo_cut_spectrum,'ro')
+    plot(x_inst_FRF,Hmo_all,'go')
+    plot(xFRF,waveHsTotal(:,Nt_lidar),'g-','LineWidth',2)
+    plot(xFRF,1*waterLevel(:,Nt_lidar),'b-','LineWidth',2)
+    title('Model-Data Comparison along y_{FRF}=940 m')
+    xlabel('x_{FRF} [m]')
+    ylabel('Elevation [m]')
+    legend('Modeled H_s','Modeled setup x 10','Observed H_s (onshore only, >6s)','Observed H_s (all)','Lidar Hs','Lidar Setup','Location','SouthEast')
+catch
+end
 
 
 

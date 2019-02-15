@@ -70,10 +70,10 @@ time=ncread(url,'time'); % downloading time from server
 %tunit= ncreadatt(url,'time','units'); % reading attributes of variable time  # how to read an attribute
 % converting time to matlab datetime
 mtime=time/(3600.0*24)+datenum(1970,1,1);
-fprintf('Parsing time\nWave Record at this location starts: %s  ends: %s\n',datestr(min(mtime)),datestr(max(mtime)))
+% fprintf('Parsing time\nWave Record at this location starts: %s  ends: %s\n',datestr(min(mtime)),datestr(max(mtime)))
 % finding index that corresponds to dates of interest
 itime=find(d1 <= mtime & d2>= mtime); % indicies in netCDF record of data of interest
-disp('Retrieving Data')
+% disp('Retrieving Data')
 % pulling data that is time length dependent (D1,D2)
 % TODO: fix these try/catch statements
 if ~isempty(itime)
