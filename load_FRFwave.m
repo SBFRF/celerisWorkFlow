@@ -17,7 +17,7 @@ catch  % this will parse a structure from the getWaveFRF, from thredds
     nominaldepth = median(fname.depth);  % incase there are multiple values
     wavedepth = fname.depth;
     waveFrequency = 1/fname.Tp;
-    waveMeanDirection = fname.dirpeak;  % this isn't totally right
-    waveEnergyDensity = fname.spec2D;
+    waveMeanDirection = fname.Dp;  % this isn't totally right, get data function needs to be edited
+    waveEnergyDensity = fname.spec2D;  % this likely has to be permuted back to time last then netCDF convention for freq and dir 
 end
 eval(['save FRFwave_forecast.mat waveTime Hs Tp Dp nominaldepth wavedepth waveFrequency waveMeanDirection waveEnergyDensity'])

@@ -126,6 +126,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
 %     eval([' ! wget --output-document ' fname_writeout19 ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waves/xp125m/' fname_year '/' fname_thredds19 '"'])
 
     % get webcam image at this time ______________________
+    disp('change webcam to return only when "current"')
     no_webcam_image=0;
     try
         eval(' ! wget --output-document webcam_FRF.jpg "http://www.frf.usace.army.mil/oscar/nowc4.jpg"')
@@ -234,7 +235,12 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     % determine the frequency cutoff by number of grid points in X and
     % Y, Current limitation of the model
     n_cutoff=min([1000,nx,ny]);
-    spectrum_FRF_2D_interp(waveFrequency,waveMeanDirection,squeeze(waveEnergyDensity(:,:,Nt))',H,T,n_cutoff)
+    spectrum_FRF_2D_interp(waveFrequency, waveMeanDirection, squeeze(waveEnergyDensity(Nt,:,:))',H,T,n_cutoff)
+    % this has a directional issue related to input shape of the spectra
+    % Index in position 2 exceeds array bounds (must not exceed 72).
+    % see load frf wave 
+
+    
     
     set(hf3,'PaperPosition',[0 0 3 3]*resol(1)/2560);
     print -djpeg100 spectrum2D.jpg
