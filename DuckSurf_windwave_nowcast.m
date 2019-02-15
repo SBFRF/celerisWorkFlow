@@ -26,6 +26,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     
     dataCollectStart = datenum(datetime(forecast_date, 'InputFormat','yyyy-mm-dd''T''HH.mm.ss''.Z'));
     dataCollectionEnd = datenum(datetime(forecast_date, 'InputFormat','yyyy-mm-dd''T''HH.mm.ss''.Z')+addTime); % add 1 hour 
+    time_reference = datenum('1970', 'yyyy');
 
 
     % screen-size, for screen capture visualizations
@@ -147,7 +148,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     load_FRFwave(array8m)
     load FRFwave_forecast.mat
     disp(['Water depth at FRF nowcast offshore boundary (m): ' num2str(nominaldepth)])
-    
+    waveTime = (waveTime-time_reference)*24*60*60;  % convert back to posix time 
     time_reference = datenum('1970', 'yyyy');
     
     % find FRFwave data indices that we will generate forecasts for
@@ -163,15 +164,15 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     cur_date=datestr(time_matlab,'yyyy-mm-ddTHH.MM.SS.Z');
     FRF_Wt_ind(forecast_count)=Nt;
     % FRF tide data ______________________________________
-    fname_thredds_tide=['FRF-ocean_waterlevel_eopNoaaTide_' fname_year fname_month '.nc'];
-    fname_writeout_tide='FRF_tides.nc';
-    eval([' ! wget --output-document ' fname_writeout_tide ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waterlevel/eopNoaaTide/' fname_year '/' fname_thredds_tide '"'])
+%     fname_thredds_tide=['FRF-ocean_waterlevel_eopNoaaTide_' fname_year fname_month '.nc'];
+%     fname_writeout_tide='FRF_tides.nc';
+%     eval([' ! wget --output-document ' fname_writeout_tide ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waterlevel/eopNoaaTide/' fname_year '/' fname_thredds_tide '"'])
     % here's what get WL would need to replace 
-    WLdata = getWLFRF(datenum(dataCollectStart), datenum(dataCollectionEnd), 1);
-    
-    tideTime=WL.time; % ncread(fname_writeout_tide,'time');
-    waterlevel=WL.WL; %ncread(fname_writeout_tide,'waterLevel');
-    pred_waterlevel=WL.PredictedWL; %ncread(fname_writeout_tide,'predictedWaterLevel');
+    WLdata = getWLFRF(datenum(dataCollectStart)-3600, datenum(dataCollectionEnd), 1);
+    % convert back to posix time 
+    tideTime=(WLdata.time-time_reference)*24*60*60; % ncread(fname_writeout_tide,'time');
+    waterlevel=WLdata.WL;                %ncread(fname_writeout_tide,'waterLevel');
+    pred_waterlevel=WLdata.PredictedWL;  %ncread(fname_writeout_tide,'predictedWaterLevel');
     
     % load predictions NAVD88
     tide_pred=pred_waterlevel;
@@ -181,7 +182,10 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     
     % add value here for storm surge, tide - any sort of constant water level
     % change for entire domain
-    water_level_change=interp1(tideTime, tide_meas,waveTime(Nt));
+    water_level_change=interp1(tideTime, tide_meas, waveTime(Nt));
+    if isnan(water_level_change)
+       error('No WaterLevel Data')
+    end
     %(m), all grids at NAVD datum,
     % Now do bathy  ______________________________________
     % load the pre-formatting mat file containing bathy/topo data
@@ -208,6 +212,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     
     %%
     % regenerate bathy to account for tide level
+    delete 'bathy/celeris_bathy.mat'
     disp([' BATHY: Shifting bathy to account for tide level of (m-NAVD88): ' num2str(water_level_change)])
     cd(['bathy\' char(dir_names(choice))])  % change to local database directory, where the "celeris_bathy.mat" is located
     bathy_date_str=[cur_date(1:4) cur_date(6:7) cur_date(9:10)];
