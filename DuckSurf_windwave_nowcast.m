@@ -167,7 +167,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     fname_writeout_tide='FRF_tides.nc';
     eval([' ! wget --output-document ' fname_writeout_tide ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waterlevel/eopNoaaTide/' fname_year '/' fname_thredds_tide '"'])
     % here's what get WL would need to replace 
-    WLdata = getWLFRF(datenum(startSimdatetime), datenum(endSimdatetime), 1);
+    WLdata = getWLFRF(datenum(dataCollectStart), datenum(dataCollectionEnd), 1);
     
     tideTime=WL.time; % ncread(fname_writeout_tide,'time');
     waterlevel=WL.WL; %ncread(fname_writeout_tide,'waterLevel');
