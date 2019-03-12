@@ -1,12 +1,11 @@
-
 function [R2]=calc_runup_dist(runup)
-
+% This script calculates the runup distribution 
 %runup_tmsrs, matrix containing all timeserires to be analyzed.
 
 i=1;
 %L = filter(ones(3,1)/3,1,[runs(k).one(:,i)' zeros(1,1)']);
 %out1 = L(2:end);
-[pks, locs]  = peakseek(runup, 4,0);  % peak thresholds as deterimined by Pat
+[pks, locs]  = peakseek(runup, 4, 0);  % peak thresholds as deterimined by Pat
 mx(i)=max(pks);
 avg(i)=mean(pks);
 mn(i)=min(pks);

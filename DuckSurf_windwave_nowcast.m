@@ -17,6 +17,8 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     vizCount = 1; % this will run 3 sims if just 1, will run with below order
     %=1 colored eta %=2 colored vorticity %=3 photorealistic
     dataPrefix = "datafiles";  % this is where all forcing data will live
+    httpOutputPath='\output_http\'; % this is where the http output lives 
+    stdOutput='\output\';            % this is where image output lives 
     addTime  =  3600;
     %% gloabals
     % default values for all simulations:
@@ -47,7 +49,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     
     % grid info
     ind_c=1;
-    dir_names{ind_c}='Duck_FRF';
+    dir_names{ind_c}='CMTB_Duck_FRF';
     wave_bc(ind_c)=2;
     % this is the numerical grid resolution in m
     grid_size(ind_c)=1.;
@@ -57,7 +59,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     % variable
     
     cd_home=cd;
-    cd_http=[cd '\output_http\'];
+    cd_http=[cd httpOutputPath];
     cur_timeZ=now+datenum(2010,1,1,7,0,0)-datenum(2010,1,1,0,0,0);  % simulation / forecast time
 
     % Load location-specifc parameters
@@ -126,7 +128,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
 %     eval([' ! wget --output-document ' fname_writeout19 ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waves/xp125m/' fname_year '/' fname_thredds19 '"'])
 
     % get webcam image at this time ______________________
-    disp(' TODO: gather Argus Webcam image from local server')
+    disp('      TODO: gather Argus Webcam image from local server')
     no_webcam_image=1;
     % for now lets assume no argus imagery
 %     try
@@ -204,7 +206,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     %%
     %clean and create output directory
     grid_name=char(dir_names(choice));
-    frames_dir=[cd '\output\' grid_name];
+    frames_dir=[cd stdOutput grid_name];
     try
         eval(['rmdir ' frames_dir ' s;'])
     end
@@ -224,8 +226,14 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     % regenerate bathy to account for tide level
     delete 'bathy/celeris_bathy.mat'
     disp([' BATHY: Shifting bathy to account for tide level of (m-NAVD88): ' num2str(water_level_change)])
-    cd(['bathy\' char(dir_names(choice))])  % change to local database directory, where the "celeris_bathy.mat" is located
-    bathy_date_str=[cur_date(1:4) cur_date(6:7) cur_date(9:10)];
+    if exist(['bathy\' char(dir_names(choice))], 'dir');
+        cd(['bathy\' char(dir_names(choice))])  % change to local database directory, where the "celeris_bathy.mat" is located
+    else
+        mkdir(['bathy\' char(dir_names(choice))]);
+        copyfile('load_nc_duck_CMTB.m', ['bathy\' char(dir_names(choice))])
+        cd(['bathy\' char(dir_names(choice))])  % change to local database directory, where the "celeris_bathy.mat" is located
+    end
+    %bathy_date_str=[cur_date(1:4) cur_date(6:7) cur_date(9:10)];
     load_nc_duck_CMTB(FRF_Nt_time, 0)
     load celeris_bathy.mat
     cd(cd_home)
@@ -398,7 +406,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     xco=0; % defines the initial x-location (m) of the crest of the solitary wave
     yco=0; % defines the initial y-location (m) of the crest of the solitary wave
     for nviz=1:vizCount
-        % how many CML files do i need to create?
+        % how many CML files do i need to create/how many times am i running the model (for visualization)?
         if nviz==1
             create_cml(file_name_cml,timestep,Mannings_n,m_width,m_length,nx,ny,wave_type,H_plot_cbar,T,theta,xco,yco,bc,sponge,min_depth,brk1,brk2,inst_ind,range_x,range_y,Courant)
         elseif nviz==2
@@ -409,7 +417,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
         
         delete array.txt
         delete time_axis.txt
-        
+%% set model to run         
         % run Celeris
         %           ! Celeris.exe  &
         
@@ -423,12 +431,12 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
         rob=Robot;
         
         h = actxserver('WScript.Shell');
-        h.Run('Celeris.exe'); %Invokes
+        h.Run('Celeris.exe');                     %Invokes
         
         pause_int=sim_time/2/num_frames;
-        pause(sim_time/2+30)  % wait for sim warm up
+        pause(sim_time/2+30)                      % wait for sim warm up
         
-        h.AppActivate('Celeris.exe'); %Brings to focus
+        h.AppActivate('Celeris.exe');             %Brings to focus
         rob.keyPress(KeyEvent.VK_WINDOWS)
         rob.keyPress(KeyEvent.VK_UP)
         rob.keyRelease(KeyEvent.VK_WINDOWS)
@@ -439,7 +447,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
         logoimage=imread('logo.jpg');
         [lx,ly,lz]=size(logoimage);
         
-        
+        %% model is running, Grab screen captures to 'visualize'
         cd_home=cd;
         for i=1:num_frames
             imageData = screencapture(0, [0,0,resol(1)-500,resol(2)]); % select a small desktop region, crop out user menu
@@ -465,8 +473,8 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
             
             pause(pause_int)
         end
-        
-        ! taskkill /IM Celeris.exe > screen.txt
+        % kill celeris 
+        ! taskkill /IM Celeris.exe > screen.txt   
         pause(30)  % sometimes celeris is slow to release file handles
         toc
         % write final surface to image
@@ -586,7 +594,8 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     globalYamlFileName = 'yaml_files/CelerisGlobal.yml';
     varYamlFileName = 'yaml_files/phaseResolvedVar.yml';
     load_array
-    close(all)
+    close all
     
     %%% move model index html and netCDF files here
+    disp('     TODO move files here')
 end
