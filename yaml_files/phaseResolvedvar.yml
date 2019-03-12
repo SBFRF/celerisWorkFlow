@@ -66,8 +66,8 @@ totalWaterLevel:
         surge + tide). Elevations reflect the instantaneous water level elevation
         -- surge and tide components have not been removed'
  
-currentU: 
-    name: 'currentU'
+velocityU: 
+    name: 'velocityU'
     units: 'hz'
     standard_name: ''
     long_name: 'velocity * depth '
@@ -77,8 +77,8 @@ currentU:
     short_name: 'U'
     comment: this variable is actually a u*depth value as output by the model, if looking for vector output, need to divide by local depth  
  
-currentV: 
-    name: 'currentV'
+velocityV: 
+    name: 'velocityV'
     units: 'hz'
     standard_name: ''
     long_name: 'velocity * depth '
