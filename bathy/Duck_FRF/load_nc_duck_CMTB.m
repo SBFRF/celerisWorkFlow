@@ -45,8 +45,9 @@ cur_date=datestr(time_matlab,'yyyy-mm-ddTHH.MM.SS.Z');
 disp([' BATHY: Using CMTB bathy from ' cur_date ' for simulation Date ' datestr(datetime(dateIn, 'convertfrom','posixtime')) ])
 % only pull one bathy 
 hAll=ncread(url,'elevation', [1, 1, ind_min_time_diff], [xe, ye, 1]);
-h=squeeze(hAll)';   
-disp([' BATHY: bathy Gathered, now Preprocessing'])
+h=squeeze(hAll)';  
+%% pre process Bathy 
+%disp([' BATHY: bathy Gathered, now Preprocessing'])
 [ny,nx]=size(h);
 
 % remove data now 
