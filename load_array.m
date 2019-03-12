@@ -4,7 +4,7 @@
 load time_axis.txt -ascii
 load array.txt -ascii
 freqInterp = 0.5;  % what resolution do we need to sample the timeseries output at 
-tEnd =17; %[m] always Take the last 17 minutes of runtime (determined by repeat time)
+tEnd =17;          %[m] always Take the last 17 minutes of runtime (determined by repeat time)
 
 % parse out spatial time series
 x_ind=array(:,1);
@@ -52,10 +52,10 @@ for n=1:nt
         end
     end
 end
-runup_trunc=runup(:)+water_level_change;
-[R2]=calc_runup_dist(runup_trunc) ;
+runup_trunc=runup(:) + water_level_change;
+[R2]=calc_runup_dist(runup_trunc);
 
-ho_dry=ho(1:shore_ie)+water_level_change;
+ho_dry=ho(1:shore_ie) + water_level_change;
 xFRF_dry=x_inst(1:shore_ie);
 
 Hs=zeros(numx,numy);
@@ -96,12 +96,12 @@ else
     error('netCDF package not Found!  Please add netCDFcode to your search path');
 end
 
-%add waterlevelchange to eta to get navd88 
+% create data structure for netCDF file output
 dataIn.time = waveTime(Nt);
 dataIn.tsTime = squeeze(outTime(idxStart:end));
 dataIn.eta = permute(water_level_change + etaInterp(idxStart:end, : ), [3, 1, 2]);  
-dataIn.currentU = permute(uInterp, [3, 1, 2]);
-dataIn.velocity = permute(vInterp, [3, 1, 2]);
+dataIn.velocityU = permute(uInterp, [3, 1, 2]);
+dataIn.velocityV = permute(vInterp, [3, 1, 2]);
 dataIn.xFRF = x_inst;
 dataIn.yFRF = y_inst;
 dataIn.station_name = "celeris Model";
