@@ -38,7 +38,9 @@ if d2<d1
     return 
 end
 %% set url's 
+svrloc='https://134.164.129.55/thredds/dodsC/FRF/';  % The prefix for the CHL thredds server
 svrloc='https://chldata.erdc.dren.mil/thredds/dodsC/frf/';  % The prefix for the CHL thredds server
+
 % add other wave gauges here
 % TODO: change these arbitrary numbers to actual string calls
 if gnum==1
@@ -62,7 +64,7 @@ elseif gnum==9
 elseif gnum==10
     urlback='oceanography/waves/8m-array/8m-array.ncml'; % 8 m array
 else
-    disp ' go to http://chlthredds.erdc.dren.mil/thredds/catalog/frf/catalog.html and browse to the gauge of interest and select the openDAP link'
+    disp ' go to http://chldata.erdc.dren.mil/thredds/catalog/frf/catalog.html and browse to the gauge of interest and select the openDAP link'
 end
 url=strcat(svrloc,urlback);
 %% Main program

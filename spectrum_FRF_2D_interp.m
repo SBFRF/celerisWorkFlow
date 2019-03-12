@@ -2,6 +2,13 @@ function spectrum_FRF_2D_interp(f,theta,E_D,Hs_o,Tp_o,n_cutoff)
 % % % Interpolates the 2D frequency x direction spectrum 
 % from FRF conventions of 62 by 75 to a value that is 
 % most appropriate for model setup. 
+% INPUT
+%   f - input wave frequencies shaped [nf]
+%   theta -- input wave directions shaped [nd]
+%   E_D - input spectra shaped [nf, nd]
+%   Hs_o - wave height 
+%   Tp_o - wave peak period 
+%   n_cutoff - the frequency cutoff by number of grid points in X and Y, Current limitation of the model
 % written by Pat Lynette, modified by spicer bak
 rng('shuffle');  % random rand seed
 
@@ -121,7 +128,7 @@ for i=1:nf
         end
     end
 end
-Hmo_cut_spectrum2 = sqrt(Hmo_c2)*4.004
+Hmo_cut_spectrum2 = sqrt(Hmo_c2)*4.004;   % calculate the cut spectrum wave height
 disp(['Input ','Full Spectrum','Cut Spectrum'])
 disp([Hs_o, Hmo_full_spectrum, Hmo_cut_spectrum])
 

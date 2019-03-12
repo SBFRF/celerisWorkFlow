@@ -97,7 +97,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
         
     end
     
-    disp([' NOWCAST: Loading Input Data...'])
+    disp(['   Begining New simulation: Loading Input Data...'])
     
     %------------------------------------------------
     % load FRF THREDDS data, need coords from celeris_bathy.mat
@@ -107,7 +107,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
         fname_month=['0' fname_month];
     end
     % Get wave data  ____________________________________
-    disp([' NOWCAST: gathering data locally from THREDDS'])
+    disp(['   NOWCAST: gathering data locally from THREDDS'])
 %     disp([' NOWCAST: getdata more efficently'])
 %     fname_thredds=['FRF-ocean_waves_8m-array_' fname_year fname_month '.nc'];
 %     fname_writeout8='FRF_8m-array.nc';
@@ -126,24 +126,29 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
 %     eval([' ! wget --output-document ' fname_writeout19 ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waves/xp125m/' fname_year '/' fname_thredds19 '"'])
 
     % get webcam image at this time ______________________
-    disp('change webcam to return only when "current"')
-    no_webcam_image=0;
-    try
-        eval(' ! wget --output-document webcam_FRF.jpg "http://www.frf.usace.army.mil/oscar/nowc4.jpg"')
-        webcam_image=imread('webcam_FRF.jpg');
-        [wcx,wcy,wcz]=size(webcam_image);
-        wc_reduce=8;
-        webcam_image=webcam_image(1:wc_reduce:wcx,1:wc_reduce:wcy,:);
-        [wcx, wcy, wcz]=size(webcam_image);
-    catch
-        disp('FRF website down')
-        no_webcam_image=1;
-    end
+    disp(' TODO: gather Argus Webcam image from local server')
+    no_webcam_image=1;
+    % for now lets assume no argus imagery
+%     try
+%         eval(' ! wget --output-document webcam_FRF.jpg "http://www.frf.usace.army.mil/oscar/nowc4.jpg"')
+%         webcam_image=imread('webcam_FRF.jpg');
+%         [wcx,wcy,wcz]=size(webcam_image);
+%         wc_reduce=8;
+%         webcam_image=webcam_image(1:wc_reduce:wcx,1:wc_reduce:wcy,:);
+%         [wcx, wcy, wcz]=size(webcam_image);
+%     catch
+%         disp('FRF website down')
+%         no_webcam_image=1;
+%     end
     pier_image=imread('pier.jpg');
     [px,py,pz]=size(pier_image);
     
-    
-    array8m = getwaveFRF(dataCollectStart, dataCollectionEnd, 10);   
+    try
+        array8m = getwaveFRF(dataCollectStart, dataCollectionEnd, 10);   
+    catch
+        array8m = getwaveFRF(dataCollectStart, dataCollectionEnd, 10);   
+    end
+
 %     [~, ~, ~, ~, yFRF, x_inst_FRF(inst_ind)] = frfCoord(array8m.lat, array8m.lon);  % get FRF coordinates for the gauge
 %     [Hmo_cut_spectrum(inst_ind),Hmo_all(inst_ind),Tp_all(inst_ind)]=load_FRFinst(array8m, waveTime(Nt));
     load_FRFwave(array8m)
@@ -168,8 +173,12 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
 %     fname_thredds_tide=['FRF-ocean_waterlevel_eopNoaaTide_' fname_year fname_month '.nc'];
 %     fname_writeout_tide='FRF_tides.nc';
 %     eval([' ! wget --output-document ' fname_writeout_tide ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waterlevel/eopNoaaTide/' fname_year '/' fname_thredds_tide '"'])
-    % here's what get WL would need to replace 
-    WLdata = getWLFRF(datenum(dataCollectStart)-3600, datenum(dataCollectionEnd), 1);
+    % here's where get WL replaced a wget
+    try
+        WLdata = getWLFRF(datenum(dataCollectStart)-3600, datenum(dataCollectionEnd), 1);
+    catch      % try again, will handle weird server errors 
+        WLdata = getWLFRF(datenum(dataCollectStart)-3600, datenum(dataCollectionEnd), 1);
+    end 
     % convert back to posix time 
     tideTime=(WLdata.time-time_reference)*24*60*60; % ncread(fname_writeout_tide,'time');
     waterlevel=WLdata.WL;                %ncread(fname_writeout_tide,'waterLevel');
@@ -235,7 +244,8 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     % determine the frequency cutoff by number of grid points in X and
     % Y, Current limitation of the model
     n_cutoff=min([1000,nx,ny]);
-    spectrum_FRF_2D_interp(waveFrequency, waveMeanDirection, squeeze(waveEnergyDensity(Nt,:,:))',H,T,n_cutoff)
+    
+    spectrum_FRF_2D_interp(waveFrequency, waveDirection, squeeze(waveEnergyDensity(Nt,:,:))', H, T ,n_cutoff)
     % this has a directional issue related to input shape of the spectra
     % Index in position 2 exceeds array bounds (must not exceed 72).
     % see load frf wave 
@@ -366,7 +376,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     
     % set breaking parameters based on wave height.  These are VIZ
     % not pyhsical model parameters - they dont change simulation
-    % results, these values are determined in the model
+    % results, these values are default determined in the model
     brk_limH=[0.65 1.5];
     brk_limthres=[0.2 0.45];
     plung_atten=0.02;
@@ -567,13 +577,16 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     eval(['copyfile ' frames_dir '\model_index.html ' http_dir])
     eval(['copyfile ' frames_dir '\*.* ' http_dir])
     
-    disp(['MAKE NETCDF FILES HERE!~!'])
     datestrout = datestr(cur_timeZ,'yyyy-mm-ddTHHMMSSZ');
     % define fname out for netCDF file output
     ncFilename = sprintf('CMTB-waveModels_CELERIS_base_spatial_%s.nc', datestrout);
     fnameOut = ['D:\celeris_output\' ncFilename ];
+    fprintf('Making NetCDF File !~! %s', fnameOut)
+
     globalYamlFileName = 'yaml_files/CelerisGlobal.yml';
     varYamlFileName = 'yaml_files/phaseResolvedVar.yml';
     load_array
-
+    close(all)
+    
+    %%% move model index html and netCDF files here
 end
