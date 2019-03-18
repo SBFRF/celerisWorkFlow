@@ -8,19 +8,28 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
 %           domain and resolution
 %
 %   Written by Pat Lynett, USC and modified by Spicer Bak, USACE
-%%
+%%  Start 
     w = warning ('off', 'all');
     clickableMap = false;
     %% INPUTS:
-    forecast_count=1;  % only forecast for most recent data, can loop across this variable if more times desired
-    num_frames=300; % num frames to inlcude in animation
-    vizCount = 1; % this will run 3 sims if just 1, will run with below order
-    %=1 colored eta %=2 colored vorticity %=3 photorealistic
-    dataPrefix = "datafiles";  % this is where all forcing data will live
-    httpOutputPath='\output_http\'; % this is where the http output lives 
+    forecast_count=1;       % only forecast for most recent data, can loop across this variable if more times desired
+    num_frames=300;         % num frames to inlcude in screen grabbed animation (300 frames for total sim time)
+    vizCount = 1;           % this will run 3 sims if just 1, will run with below order
+                            %=1 colored eta %=2 colored vorticity %=3 photorealistic
+    dx_target = 1;  % will set equal for y
+    dataPrefix = "datafiles";        % this is where all forcing data will live
+    httpOutputPath='\output_http\';  % this is where the http output lives 
     stdOutput='\output\';            % this is where image output lives 
-    addTime  =  3600;
-    %% gloabals
+    gridLabel ='CMTB_base';       % used for folder labels (maybe add version prefix here)
+    addTime  =  3600;             % [seconds] added to back end to gather 'extra' data used for 
+    %% Handle directories 
+    %clean and create output directory
+    grid_name=gridLabel;
+    frames_dir=[cd stdOutput grid_name];  % location for screen capture images
+    mkdir(frames_dir)
+    
+    
+    %% Global Veriables
     % default values for all simulations:
     Courant=0.075;  % Courant number, controls time step
     Mannings_n=0.0035;  % Friction factor, quadratic law friction factor f/2*H*u^2
@@ -30,13 +39,11 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     dataCollectionEnd = datenum(datetime(forecast_date, 'InputFormat','yyyy-mm-dd''T''HH.mm.ss''.Z')+addTime); % add 1 hour 
     time_reference = datenum('1970', 'yyyy');
 
-
     % screen-size, for screen capture visualizations
     ss=get(0,'ScreenSize');
     % resol=[1920 830];
     % resol=[2560 1600];
-    resol=[ss(3) ss(4)];  % automatically detect screen resolution
-    
+    resol=[ss(3) ss(4)];       % automatically detect screen resolution
     
     % END TOP INPUT BLOCK
     %%
@@ -44,27 +51,21 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     numgrids=1;
     dir_names=cell(numgrids,1);
     wave_bc=zeros(numgrids,1);
-    grid_size=wave_bc;
+%     grid_size=wave_bc;
     tidestatID=dir_names;
     
-    % grid info
+    % grid info -- all of this related to running multiple locations with
+    % same code, could be streamlined
     ind_c=1;
-    dir_names{ind_c}='CMTB_Duck_FRF';
+    choice = ind_c;
+    dir_names{ind_c}=gridLabel; 
     wave_bc(ind_c)=2;
-    % this is the numerical grid resolution in m
-    grid_size(ind_c)=1.;
-    
-    % Decide on location
-    % from bathy database, "choice" varaiable corresponds to "ID" in "labels"
-    % variable
+
     
     cd_home=cd;
     cd_http=[cd httpOutputPath];
-    cur_timeZ=now+datenum(2010,1,1,7,0,0)-datenum(2010,1,1,0,0,0);  % simulation / forecast time
+    cur_timeZ=now+datenum(2010,1,1,7,0,0) - datenum(2010,1,1,0,0,0);  % simulation / forecast time
 
-    % Load location-specifc parameters
-    choice=1;
-    
     % default values, will change only wave input boundary
     bc(1)=1; %westBoundary, value=1: Solid wall; value=2: Sponge layer; value=3: Sine wave through this boundary; value=4: Irregular wave through this boundary
     bc(2)=2; %eastBoundary, value=1: Solid wall; value=2: Sponge layer; value=3: Sine wave through this boundary; value=4: Irregular wave through this boundary
@@ -76,7 +77,6 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     sponge(4)=30; % northBoundary sponge width, only used if bc(4)=2
     
     wave_boundary_str=num2str(wave_bc(choice));
-    
     for ii=1:length(wave_boundary_str)
         
         wave_boundary_c=str2num(wave_boundary_str(ii));
@@ -203,15 +203,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     % load the pre-formatting mat file containing bathy/topo data
     % disp(['Shifting bathy to account for tide level of (m-NAVD88): ' num2str(water_level_change)])
     
-    %%
-    %clean and create output directory
-    grid_name=char(dir_names(choice));
-    frames_dir=[cd stdOutput grid_name];
-    try
-        eval(['rmdir ' frames_dir ' s;'])
-    end
-    pause(2)  % allow dropbox to figure it out
-    mkdir(frames_dir)
+
     %% Set indicies and time properly 
     % start forecast loop -- removed
     ifcst = 1;
@@ -224,7 +216,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     
     %%
     % regenerate bathy to account for tide level
-    delete 'bathy/celeris_bathy.mat'
+    delete 'bathy/celeris_bathy.mat'  % remove old one
     disp([' BATHY: Shifting bathy to account for tide level of (m-NAVD88): ' num2str(water_level_change)])
     if exist(['bathy\' char(dir_names(choice))], 'dir');
         cd(['bathy\' char(dir_names(choice))])  % change to local database directory, where the "celeris_bathy.mat" is located
@@ -234,12 +226,13 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
         cd(['bathy\' char(dir_names(choice))])  % change to local database directory, where the "celeris_bathy.mat" is located
     end
     %bathy_date_str=[cur_date(1:4) cur_date(6:7) cur_date(9:10)];
-    load_nc_duck_CMTB(FRF_Nt_time, 0)
+    load_nc_duck_CMTB(FRF_Nt_time, 0)               % go get bathy 
     load celeris_bathy.mat
     cd(cd_home)
     
-    H_toobig_factor=1; % init for first bathy pass through
-    load_bathy  % run bathy load script
+    H_toobig_factor=1;           % init for first bathy pass through (needed for below)
+    
+    load_bathy                   % run bathy load script (loads/plots/shifts bathy with WL)
     bathyimage=imread('bathytopo.jpg');
     [bx,by,bz]=size(bathyimage);
     
@@ -258,8 +251,6 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     % Index in position 2 exceeds array bounds (must not exceed 72).
     % see load frf wave 
 
-    
-    
     set(hf3,'PaperPosition',[0 0 3 3]*resol(1)/2560);
     print -djpeg100 spectrum2D.jpg
     specimage=imread('spectrum2D.jpg');
@@ -479,11 +470,12 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
         toc
         % write final surface to image
         disp([' WORKFLOW: Model Complete!\nLoading output data and perfoming time series analysis'])
-        if nviz==1
-            load_array_nowcast
-            set(hf6,'PaperPosition',[0 0 4 2.8]*resol(1)/2560);
-            print -djpeg100 data_comp.jpg
-        end
+%         if nviz==1
+%             load_array_nowcast  % lets not load data twice (we load to
+%             complete script)
+%             set(hf6,'PaperPosition',[0 0 4 2.8]*resol(1)/2560);
+%             print -djpeg100 data_comp.jpg
+%         end
         dataimage=imread('data_comp.jpg');
         [datax,datay,dataz]=size(dataimage);
         
@@ -580,14 +572,14 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     
     % copy files to http
     http_dir=[cd_http grid_name];
-    eval(['! del /s/q ' http_dir '\* > screen_copy.txt'])
+    %eval(['! del /s/q ' http_dir '\* > screen_copy.txt']) % don't delete
+    %any Files 
     pause(2);
     eval(['copyfile ' frames_dir '\model_index.html ' http_dir])
     eval(['copyfile ' frames_dir '\*.* ' http_dir])
     
-    datestrout = datestr(cur_timeZ,'yyyy-mm-ddTHHMMSSZ');
     % define fname out for netCDF file output
-    ncFilename = sprintf('CMTB-waveModels_CELERIS_base_spatial_%s.nc', datestrout);
+    ncFilename = sprintf('CMTB-waveModels_CELERIS_base_spatial_%s.nc', cur_date);
     fnameOut = ['D:\celeris_output\' ncFilename ];
     fprintf('Making NetCDF File !~! %s', fnameOut)
 

@@ -20,15 +20,15 @@
 %
 %
 %% set inputs 
-simStart = []; % hindcast date in Z
-simEnd =  [];  % end date for batchruns 
+simStart = [];   % hindcast date in Z
+simEnd =   [];   % end date for batchruns 
 % set home working directory 
-homeDir = "C:\Users\Waves.DESKTOP-DRJMBVD\Desktop\Celeris_dump\Celeris_Duck\Celeris_Duck";
+homeDir = "D:\CMTB_Celeris";
 % wall clock time (in seconds)  should be 30, will save the last 17 minutes
-sim_time=5*60; 
+sim_time=30*60; 
 % run model every hour between start and end  (how often to run between dates)
 hourDT = 1; 
-%% run 
+%% run model loop
 % generate list of forecast_dates
 if isempty(simStart);
     endSimdatetime = dateshift(datetime('now'), 'start', 'hour');

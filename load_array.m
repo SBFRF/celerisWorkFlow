@@ -1,10 +1,11 @@
 % loads to-file output from Celeris
 % written by Pat Lynett, USC and modified Spicer Bak, USACE 
 
+load repeat_time.txt -ascii  % repeat_time in minutes
 load time_axis.txt -ascii
 load array.txt -ascii
-freqInterp = 0.5;  % what resolution do we need to sample the timeseries output at 
-tEnd =17;          %[m] always Take the last 17 minutes of runtime (determined by repeat time)
+freqInterp = 0.5;       % what resolution do we need to sample the timeseries output at 
+tEnd =17.0667;          %[m] always Take the last 17 minutes of runtime (determined by repeat time)
 
 % parse out spatial time series
 x_ind=array(:,1);
@@ -14,7 +15,7 @@ pcol = array(:, 4); % total water depth * u
 qcol = array(:, 5); % total water depth * v
 timeArray = time_axis(:); % parse out time
 
-%% 
+%% parse into dimensioned arrays
 numx=max(x_ind)-min(x_ind)+1;
 numy=max(y_ind)-min(y_ind)+1;
 nt=length(time_axis);
@@ -38,7 +39,7 @@ max_y_inst=max(instruments(:,2));
 dx_inst=(max_x_inst-min_x_inst)/(numx-1);
 x_inst=[min_x_inst:dx_inst:max_x_inst]+xoffset;
 y_inst=instruments(1,2)+yoffset;
-%% calculate runup 
+%% calculate runup from model output 
 ho=squeeze(eta(:,1,1));  % original Depth 
 Total_depth=squeeze(eta(:,1,:))'-ho';
 shore_ie=find(ho<=0.001,1);
@@ -63,14 +64,15 @@ zmean=Hs;
 Tp=Hs;
 Tm=Hs;
 
+nt_start=find(time_axis>time_axis(nt)-repeat_time*60,1);
 for i=1:numx
     for j=1:numy
-%        [Hs(i,j),zmean(i,j),Tp(i,j),Tm(i,j),f,Se,f_ave,S_ave]=spectral(outTime(idxStart:end), squeeze(eta(i,j,idxStart:end))');
+%       [Hs(i,j),zmean(i,j),Tp(i,j),Tm(i,j),f,Se,f_ave,S_ave]=spectral(outTime(idxStart:end), squeeze(eta(i,j,idxStart:end))');
         [Hs(i,j),zmean(i,j),Tp(i,j),Tm(i,j),f,Se,f_ave,S_ave]=spectral(time_axis(nt_start:nt),squeeze(eta(i,j,nt_start:nt))');
     end
 end
-%% now Interpolate time series to regular output to force time
-% to the same length
+%% now Interpolate time series to regular output 
+%     This forces data to be the same length for netCDF files 
 
 outTime = 1:freqInterp:timeArray(end);
 if outTime(end)/60 > tEnd
@@ -82,9 +84,9 @@ etaInterp = interp2(squeeze(x_inst), squeeze(timeArray), squeeze(eta)',  x_inst,
 uInterp = interp2(squeeze(x_inst), squeeze(timeArray), squeeze(p)', x_inst, outTime', 'spline'); % total water depth * u 
 vInterp = interp2(squeeze(x_inst), squeeze(timeArray), squeeze(q)', x_inst, outTime', 'spline'); % total water depth * v
 runupInterp = interp1(squeeze(timeArray), squeeze(runup), outTime', 'spline');
-% if you're going change grid resolution, we may need to interpolate in x/y 
+% if model grid resolution changes, we may need to interpolate in x/y 
 %% Write NetCDF output
-disp(['making netCDF file ' fnameOut])
+
 if exist('netCDFcode', 'dir')
     addpath(genpath('netCDFcode'))
 else
@@ -100,17 +102,17 @@ end
 dataIn.time = waveTime(Nt);
 dataIn.tsTime = squeeze(outTime(idxStart:end));
 dataIn.eta = permute(water_level_change + etaInterp(idxStart:end, : ), [3, 1, 2]);  
-dataIn.velocityU = permute(uInterp, [3, 1, 2]);
-dataIn.velocityV = permute(vInterp, [3, 1, 2]);
+dataIn.velocityU = permute(uInterp(idxStart:end, :), [3, 1, 2]);
+dataIn.velocityV = permute(vInterp(idxStart:end, :), [3, 1, 2]);
 dataIn.xFRF = x_inst;
 dataIn.yFRF = y_inst;
-dataIn.station_name = "celeris Model";
+dataIn.station_name = "celeris Model Profile";
 dataIn.totalWaterLevel = permute(R2, [2,1]) ;
 dataIn.totalWaterLevelTS =  permute(runupInterp(idxStart:end), [2,1]); % time series
 
 matlab2netCDF(dataIn, globalYamlFileName, varYamlFileName, 1, fnameOut);
 %% process for gauge comparisons 
-addTime  =  3600; % time in seconds to determine data gathering window
+addTime  =  3600;  % time in seconds to determine data gathering window
 dataCollectStart = datenum(datetime(waveTime(Nt), 'convertfrom','posixtime'));
 dataCollectionEnd = datenum(datetime(waveTime(Nt)+addTime, 'convertfrom','posixtime')); % add 1 hour 
 
