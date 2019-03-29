@@ -26,24 +26,23 @@ if gnum==1
 elseif gnum==2
     urlback='/oceanography/waterlevel/eopNoaaTide';    
 else
-    disp 'please visit http://chlthredds.erdc.dren.mil/thredds/catalog/frf/catalog.html\n' ...
+    disp 'please visit http://chldata.erdc.dren.mil/thredds/catalog/frf/catalog.html\n' ...
           'and browse to the gauge of interest and select proper url and add to program'
 end
 
-
-endUrl = '/eopNoaaTide.ncml';
-url=strcat(svrloc,urlback,endUrl); % combining first and 2nd part of url string
-
 d1vec = datevec(d1);
 d2vec = datevec(d2);
-
-if d1vec(1:2) == d2vec(1:2) %if the year + month are the same, download only that month
+%% set URL 
+if d1vec(1:2) == d2vec(1:2) %if the year + month are the same, use the url for only that month
     urlyear = num2str(d1vec(1));
     urlmonth = num2str(d1vec(2),'%02.f');
     url = [svrloc urlback '/' urlyear '/FRF-ocean_waterlevel_eopNoaaTide_' urlyear urlmonth '.nc'];
+else
+	endUrl = '/eopNoaaTide.ncml';  % if not use the generic url
+	url=strcat(svrloc,urlback,endUrl); % combining first and 2nd part of url string
 end
     
-%%
+%% go now find index  
 % pulling down time now
 time=ncread(url,'time'); % downloading time from server
 tunit= ncreadatt(url,'time','units'); % reading attributes of variable time
@@ -52,7 +51,7 @@ mtime=time/(3600.0*24)+datenum(1970,1,1);
 % finding index that corresponds to dates of interest
 sprintf('WL record starts %s and ends %s', datestr(min(mtime)),datestr(max(mtime)));
 itime=find(d1 < mtime & d2> mtime); % indicies in netCDF record of data of interest
-
+%% pull data with appropriate time index 
 % pulling data from server with itime index 
 WL.time = mtime(itime);        % record of time in matlab datetime 
 WL.WL = ncread(url,'waterLevel',min(itime),length(itime));  % measured water level
