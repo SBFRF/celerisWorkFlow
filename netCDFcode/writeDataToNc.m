@@ -82,7 +82,7 @@ for n = 1:length(accept_vars)
                 clear transformed_data
           else
                ncwrite(ncfile, var_name, structure.(var), [ones(1,ndim-1) index]);
-            end
+          end
         end
     else
         logger.info('',[var ' not found in data']);

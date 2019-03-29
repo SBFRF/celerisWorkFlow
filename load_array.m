@@ -54,7 +54,13 @@ for n=1:nt
     end
 end
 runup_trunc=runup(:) + water_level_change;
-[R2]=calc_runup_dist(runup_trunc);
+% this function seems to bomb at times, we will save as NaN, but save time
+% series to calculate later
+try
+    [R2]=calc_runup_dist(runup_trunc);
+catch
+    [R2]=NaN;
+end
 
 ho_dry=ho(1:shore_ie) + water_level_change;
 xFRF_dry=x_inst(1:shore_ie);
@@ -76,7 +82,7 @@ end
 
 outTime = 1:freqInterp:timeArray(end);
 if outTime(end)/60 > tEnd
-    idxStart = length(outTime)-tEnd*60/freqInterp;
+    idxStart = length(outTime)-ceil(tEnd*60/freqInterp)+1;
 else % if the simulation is shorter than tEnd
     idxStart = 1; 
 end 
@@ -99,17 +105,17 @@ else
 end
 
 % create data structure for netCDF file output
-dataIn.time = waveTime(Nt);
-dataIn.tsTime = squeeze(outTime(idxStart:end));
-dataIn.eta = permute(water_level_change + etaInterp(idxStart:end, : ), [3, 1, 2]);  
-dataIn.velocityU = permute(uInterp(idxStart:end, :), [3, 1, 2]);
-dataIn.velocityV = permute(vInterp(idxStart:end, :), [3, 1, 2]);
+dataIn.time = epoch2Matlab(waveTime(Nt));   % this should be matlab time 
+dataIn.tsTime = (squeeze(outTime(idxStart:end)) - outTime(idxStart))';
+dataIn.eta = (water_level_change + etaInterp(idxStart:end, : ))'; % permute(water_level_change + etaInterp(idxStart:end, : ), [3, 1, 2]);  
+dataIn.velocityU = (uInterp(idxStart:end, :))';
+dataIn.velocityV = (vInterp(idxStart:end, :))';
 dataIn.xFRF = x_inst;
 dataIn.yFRF = y_inst;
 dataIn.station_name = "celeris Model Profile";
 dataIn.totalWaterLevel = permute(R2, [2,1]) ;
-dataIn.totalWaterLevelTS =  permute(runupInterp(idxStart:end), [2,1]); % time series
-
+dataIn.totalWaterLevelTS =  runupInterp(idxStart:end); % time series
+% note check for what makes dimensions, why am i getting weird sizes 
 matlab2netCDF(dataIn, globalYamlFileName, varYamlFileName, 1, fnameOut);
 %% process for gauge comparisons 
 addTime  =  3600;  % time in seconds to determine data gathering window

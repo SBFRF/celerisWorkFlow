@@ -117,7 +117,7 @@ try
                     dims{n} = strrep(dims{n}, '.', '0x2E');
                 end
                 if isfield(structure, var)
-                    dim_name =nc_template.(dims{n}).name;
+                    dim_name = nc_template.(dims{n}).name;
                     dim_size = length(structure.(var));
                     dimid = netcdf.defDim(ncid, dim_name, dim_size);
                 else

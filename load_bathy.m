@@ -1,4 +1,7 @@
-% plot and write bathy
+%% required input 
+% x, y, b, dx_target, water_level_change, bc
+
+% script to plot and write bathy
 xo=x;
 yo=y;
 Bo=B;
@@ -6,7 +9,6 @@ Bo=B;
 range_x=max(xo)-min(xo);
 range_y=max(yo)-min(yo);
 
-dx_target=grid_size(choice)*max(1.,sqrt(H_toobig_factor)/1.15);
 dy_target=dx_target;
 
 x=[min(xo):dx_target:max(xo)];
@@ -35,7 +37,7 @@ end
 %        hbc=-mean(hbc);
 hbc=-wavedepth(length(wavedepth)); % force generation area depth to "wavedepth", since this is what is provided by CDIP data points
 
-strip_len=10; % number of points to smooth
+strip_len=10;                      % number of points to smooth
 irrbc_ind_all=find(bc==4);
 for ii=1:length(irrbc_ind_all)  %
     irrbc_ind=irrbc_ind_all(ii);

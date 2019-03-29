@@ -581,7 +581,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     % define fname out for netCDF file output
     ncFilename = sprintf('CMTB-waveModels_CELERIS_base_spatial_%s.nc', cur_date);
     fnameOut = ['D:\celeris_output\' ncFilename ];
-    fprintf('Making NetCDF File !~! %s', fnameOut)
+    fprintf('Making NetCDF File !~! %s\n', fnameOut)
 
     globalYamlFileName = 'yaml_files/CelerisGlobal.yml';
     varYamlFileName = 'yaml_files/phaseResolvedVar.yml';
