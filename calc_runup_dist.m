@@ -5,6 +5,7 @@ function [R2]=calc_runup_dist(runup)
 i=1;
 %L = filter(ones(3,1)/3,1,[runs(k).one(:,i)' zeros(1,1)']);
 %out1 = L(2:end);
+
 [pks, locs]  = peakseek(runup, 4, 0);  % peak thresholds as deterimined by Pat
 mx(i)=max(pks);
 avg(i)=mean(pks);
@@ -34,7 +35,7 @@ end
 % hold on
 % plot(asort,exprob,'k--','LineWidth',0.5);
 
-R2(i) = interp1(exprob,asort,0.98);
+R2(i) = interp1(exprob, asort, 0.98);
 
     
  
