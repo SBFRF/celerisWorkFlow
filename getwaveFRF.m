@@ -34,7 +34,7 @@ function [wave] = getwaveFRF(d1, d2, gnum)
 
 %% Matlab Get Data function start
 if d2<d1
-    print ' your times are backwards'
+    disp(' your times are backwards')
     return 
 end
 %% set url's 
@@ -147,7 +147,7 @@ if ~isempty(itime)
     catch
     end
     
-    disp 'Data successfully grabbed'
+    %disp 'Data successfully grabbed'
     
 else
     wave.time=0;
