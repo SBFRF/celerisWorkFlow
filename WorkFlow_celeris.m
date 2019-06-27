@@ -20,14 +20,14 @@
 %
 %   
 %% set inputs 
-simStart = []; %'2017-09-19T12.00.00.Z';   % hindcast date in Z
-simEnd =   []; % '2017-09-21T00.00.00.Z';   % end date for batchruns 
+simStart = []; % % hindcast date in Z
+simEnd =   []; % % end date for batchruns 
 % set home working directory 
 homeDir = "D:\CMTB_Celeris";
 % wall clock time (in seconds)  should be 30, will save the last 17 minutes
 sim_time=30*60; 
 % run model every hour between start and end  (how often to run between dates)
-hourDT = 1; 
+hourDT = 4; 
 %% run model loop
 % generate list of forecast_dates
 if isempty(simStart);
@@ -41,6 +41,7 @@ else;
 end
 % generate simulation list 
 simList = startSimdatetime:hours(hourDT):endSimdatetime;
+tic
 for ii=1:length(simList)
     try
         simulation_date = datestr(simList(ii), 'yyyy-mm-ddTHH.MM.ss.Z');
@@ -51,3 +52,5 @@ for ii=1:length(simList)
         fprintf('---------------------------------\nFAILED %s\n---------------------------------\n', simulation_date);
     end
 end
+toc
+exit

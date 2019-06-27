@@ -92,7 +92,8 @@ if ~isempty(itime)
         wave.lon=ncread(url,'lon');
     catch
         wave.lat=ncread(url,'latitude');
-        wave.lon=ncread(url,'longitude');  end
+        wave.lon=ncread(url,'longitude'); 
+    end
     
     try
         wave.HsIG = ncread(url,'waveHsIg',min(itime),length(itime));
@@ -102,13 +103,13 @@ if ~isempty(itime)
     try
         wave.fp=ncread(url,'waveFp',min(itime),length(itime));
     catch
-        wave.Tp=1/ncread(url,'waveTp',min(itime),length(itime));
+        wave.fp=1/ncread(url,'waveTp',min(itime),length(itime));
     end
     
     try
         wave.Tp=ncread(url,'waveTp',min(itime),length(itime));
     catch
-        wave.fp=1/ncread(url,'waveTp',min(itime),length(itime));
+        wave.Tp=1/ncread(url,'waveTp',min(itime),length(itime));
     end
     
     try
@@ -116,9 +117,8 @@ if ~isempty(itime)
     catch
     end
     
-    
     try
-        wave.spec2D =permute(ncread( url, 'directionalWaveEnergyDensity' , [1,1,min(itime)],[inf,inf,length(itime)]),[3, 1, 2]); % arranging with hours in first index
+        wave.spec2D =permute(ncread(url, 'directionalWaveEnergyDensity' , [1,1,min(itime)],[inf,inf,length(itime)]),[3, 1, 2]); % arranging with hours in first index
         if length(itime) ==1
             wave.spec2D = squeeze(wave.spec2D);
         end
@@ -151,8 +151,8 @@ if ~isempty(itime)
     
 else
     wave.time=0;
-    wave.error = sprintf('no wave data at%s during %s to %s', ncreadatt(url,'/','station_name'), datestr(d1), datestr(d2));
-    fprintf('There''s no wave data at%s during %s to %s\nTry another gauge' ,ncreadatt(url,'/','title'), datestr(d1), datestr(d2))
+    wave.error = 'no wave data';
+    fprintf('ERROR: There''s no wave data at %s during %s to %s\nTry another gauge\n', ncreadatt(url,'/','title'), datestr(d1), datestr(d2))
 end
 
 

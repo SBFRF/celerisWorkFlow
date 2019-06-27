@@ -1,7 +1,7 @@
 function load_nc_duck_CMTB(dateIn, method)
 % date in expected in epoch times
 %  INPUT: 
-%       dateIN is a epoch time (time in seconds since 1970-01-01-)
+%       dateIN is a epoch time (time in seconds since 1970-01-01)
 %       method: binary, 1 is closest in time 
 %                       0 is closest in history
 %
@@ -11,7 +11,7 @@ function load_nc_duck_CMTB(dateIn, method)
 % 
 % written by Patrick Lynett, USC modified by Spicer Bak, USACE 
 %%
-xMax = 910;% 
+xMax = 910; % 
 yMax = 1400; %smooth beyond this
 
 clf
@@ -37,8 +37,6 @@ elseif method == 0
     max_time_diff = min(time_diff(time_diff > 0));
     ind_min_time_diff = find(time_diff == max_time_diff,1); 
 end 
-
-disp(' BATHY: Currently only using closest bathy in time, not history')
 
 time_matlab = time_reference + double(time_all(ind_min_time_diff))/24/60/60; 
 cur_date=datestr(time_matlab,'yyyy-mm-ddTHH.MM.SS.Z');

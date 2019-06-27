@@ -16,12 +16,13 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     num_frames=300;         % num frames to inlcude in screen grabbed animation (300 frames for total sim time)
     vizCount = 1;           % this will run 3 sims if just 1, will run with below order
                             %=1 colored eta %=2 colored vorticity %=3 photorealistic
-    dx_target = 1;  % will set equal for y
+    bathyMethod = 1;        % 1 is closest in time, 0 is closest in history                              
+    dx_target = 1;          % will set equal for y
     dataPrefix = "datafiles";        % this is where all forcing data will live
     httpOutputPath='\output_http\';  % this is where the http output lives 
     stdOutput='\output\';            % this is where image output lives 
     gridLabel ='CMTB_base';       % used for folder labels (maybe add version prefix here)
-    addTime  =  3600;             % [seconds] added to back end to gather 'extra' data used for 
+    addTime  =  3600; % one day   % [seconds] added to back end to gather 'extra' data used for 
     %% Handle directories 
     %clean and create output directory
     grid_name=gridLabel;
@@ -35,12 +36,12 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     Mannings_n=0.0035;  % Friction factor, quadratic law friction factor f/2*H*u^2
     min_depth=1e-5; % minimum depth allowable, in m, typically < 1/1000 of "offshore depth"
     
-    dataCollectStart = datenum(datetime(forecast_date, 'InputFormat','yyyy-mm-dd''T''HH.mm.ss''.Z'));
-    dataCollectionEnd = datenum(datetime(forecast_date, 'InputFormat','yyyy-mm-dd''T''HH.mm.ss''.Z')+addTime); % add 1 hour 
+    dataCollectStart  = datenum(datetime(forecast_date, 'InputFormat','yyyy-MM-dd''T''HH.mm.ss''.Z'));
+    dataCollectionEnd = datenum(datetime(forecast_date, 'InputFormat','yyyy-MM-dd''T''HH.mm.ss''.Z') + addTime/60/60); % add 1 hour 
     time_reference = datenum('1970', 'yyyy');
 
     % screen-size, for screen capture visualizations
-    ss=get(0,'ScreenSize');
+    ss=get(0, 'ScreenSize');
     % resol=[1920 830];
     % resol=[2560 1600];
     resol=[ss(3) ss(4)];       % automatically detect screen resolution
@@ -110,23 +111,6 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     end
     % Get wave data  ____________________________________
     disp(['   NOWCAST: gathering data locally from THREDDS'])
-%     disp([' NOWCAST: getdata more efficently'])
-%     fname_thredds=['FRF-ocean_waves_8m-array_' fname_year fname_month '.nc'];
-%     fname_writeout8='FRF_8m-array.nc';
-%     eval([' ! wget --output-document  ' fname_writeout8 ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waves/8m-array/' fname_year '/' fname_thredds '"'])
-%     
-%     fname_thredds45=['FRF-ocean_waves_awac-4.5m_' fname_year fname_month '.nc'];
-%     fname_writeout45='FRF_awac-45m.nc';
-%     eval([' ! wget --output-document ' fname_writeout45 ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waves/awac-4.5m/' fname_year '/' fname_thredds45 '"'])
-%     
-%     fname_thredds35=['FRF-ocean_waves_adop-3.5m_' fname_year fname_month '.nc'];
-%     fname_writeout35= 'FRF_adop-35m.nc';
-%     eval([' ! wget --output-document ' fname_writeout35 ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waves/adop-3.5m/' fname_year '/' fname_thredds35 '"'])
-%     
-%     fname_thredds19=['FRF-ocean_waves_xp125m_' fname_year fname_month '.nc'];
-%     fname_writeout19= 'FRF_xp-19m.nc';
-%     eval([' ! wget --output-document ' fname_writeout19 ' --no-check-certificate "https://chlthredds.erdc.dren.mil/thredds/fileServer/frf/oceanography/waves/xp125m/' fname_year '/' fname_thredds19 '"'])
-
     % get webcam image at this time ______________________
     disp('      TODO: gather Argus Webcam image from local server')
     no_webcam_image=1;
@@ -147,7 +131,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     
     try
         array8m = getwaveFRF(dataCollectStart, dataCollectionEnd, 10);   
-    catch
+    catch  
         array8m = getwaveFRF(dataCollectStart, dataCollectionEnd, 10);   
     end
 
@@ -214,7 +198,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     cur_date=datestr(time_matlab,'yyyy-mm-ddTHH.MM.SS.Z');
     
     
-    %%
+    %% get bathy
     % regenerate bathy to account for tide level
     delete 'bathy/celeris_bathy.mat'  % remove old one
     disp([' BATHY: Shifting bathy to account for tide level of (m-NAVD88): ' num2str(water_level_change)])
@@ -226,7 +210,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
         cd(['bathy\' char(dir_names(choice))])  % change to local database directory, where the "celeris_bathy.mat" is located
     end
     %bathy_date_str=[cur_date(1:4) cur_date(6:7) cur_date(9:10)];
-    load_nc_duck_CMTB(FRF_Nt_time, 0)               % go get bathy 
+    load_nc_duck_CMTB(FRF_Nt_time, bathyMethod)               % go get bathy 
     load celeris_bathy.mat
     cd(cd_home)
     
