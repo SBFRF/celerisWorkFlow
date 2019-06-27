@@ -11,6 +11,10 @@ function spectrum_FRF_2D_interp(f,theta,E_D,Hs_o,Tp_o,n_cutoff)
 %   n_cutoff - the frequency cutoff by number of grid points in X and Y, Current limitation of the model
 % written by Pat Lynette, modified by spicer bak
 rng('shuffle');  % random rand seed
+RunDurationMin = 17; % duration in minutes of simulation
+min_period=3.5;  % min allowable period
+min_theta=0; % min allowable theta
+max_theta=160; % max allowable theta
 
 Hmo = 0;
 nf=length(f);
@@ -38,21 +42,16 @@ for i=1:nf
 end
 
 Hmo_full_spectrum = sqrt(Hmo)*4.004;
-
-
-min_period=3.5;  % min allowable period
-min_theta=0; % min allowable theta
-max_theta=160; % max allowable theta
-
+% find min and max values for truncation
 f_max=1/min_period;
 f_max_ind=find(f>f_max,1);
 t_min_ind=find(theta>min_theta,1);
 t_max_ind=find(theta>max_theta,1);
-
+% actually truncate 
 f=f(1:f_max_ind);
 theta=theta(t_min_ind:t_max_ind);
 E_D=E_D(1:f_max_ind,t_min_ind:t_max_ind);
-
+% calculate number of values left
 nf=length(f);
 nt=length(theta);
 %%
@@ -85,12 +84,11 @@ end
 Hmo_cut_spectrum = sqrt(Hmo_c)*4.004;
 
 % refine df
-df_new=1/(17*60);
+df_new=1/(RunDurationMin*60);  
 f_new=[f(1):df_new:f_max];
 
 repeat_time=1/df_new/60; % cycle repeat time in minutes
 disp(['Time series cycle time (min): ' num2str(repeat_time)])
-save repeat_time.txt repeat_time -ascii
 
 dt_new=16;
 theta_new=[theta(1):dt_new:theta(nt)];
@@ -212,4 +210,6 @@ ylabel(['Direction (degrees)'],'FontSize',5)
 %xlabel(['Frequency (Hz)'],'FontSize',5)
 axis([-Inf Inf 0 Inf])
 set(gca,'fontsize',5)
-
+%% output 
+save repeat_time.txt repeat_time -ascii
+% also make s input spectral file
