@@ -11,7 +11,7 @@ function spectrum_FRF_2D_interp(f,theta,E_D,Hs_o,Tp_o,n_cutoff, sim_time)
 %   n_cutoff - the frequency cutoff by number of grid points in X and Y, Current limitation of the model
 % written by Pat Lynette, modified by spicer bak
 rng('shuffle');  % random rand seed
-RunDurationMin = sim_time; % duration in minutes of simulation
+RunDurationMin = sim_time/60; % sim_time is in seoconds, duration in minutes of simulation
 min_period=3.5;  % min allowable period
 min_theta=0; % min allowable theta
 max_theta=160; % max allowable theta
