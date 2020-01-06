@@ -1,5 +1,10 @@
 %% required input 
-% x, y, b, dx_target, water_level_change, bc
+% x, local coordinate x  (not FRF)
+% y, local coordinate y (not FRF)
+% B, bathymetry grid (not yet shifted by WL values)
+% dx_target,
+% water_level_change,
+% bc
 
 % script to plot and write bathy
 xo=x;
@@ -93,7 +98,7 @@ ylabel('North-South, y (m)','FontSize',5)
 title(['Bathy/Topo Grid Using Grid Size (m): ' num2str(dx_target)],'FontSize',5)
 set(gca,'fontsize',5)
 axis([-Inf Inf -Inf Inf])
-caxis([min(min(B)) 15])
+caxis([min(min(B)) 5])
 colorbar
 file_name_cbf = 'matlab_launch.cbf';
 m_width=abs(x(nx)-x(1));

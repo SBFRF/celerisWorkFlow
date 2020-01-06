@@ -21,6 +21,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     dataPrefix = "datafiles";        % this is where all forcing data will live
     httpOutputPath='\output_http\';  % this is where the http output lives 
     stdOutput='\output\';            % this is where image output lives 
+    netCDFrootDir = 'D:\celeris_output\';  % where to dump netCDF files locally
     gridLabel ='CMTB_base';       % used for folder labels (maybe add version prefix here)
     addTime  =  3600; % one day   % [seconds] added to back end to gather 'extra' data used for 
     %% Handle directories 
@@ -114,18 +115,6 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     % get webcam image at this time ______________________
     disp('      TODO: gather Argus Webcam image from local server')
     no_webcam_image=1;
-    % for now lets assume no argus imagery
-%     try
-%         eval(' ! wget --output-document webcam_FRF.jpg "http://www.frf.usace.army.mil/oscar/nowc4.jpg"')
-%         webcam_image=imread('webcam_FRF.jpg');
-%         [wcx,wcy,wcz]=size(webcam_image);
-%         wc_reduce=8;
-%         webcam_image=webcam_image(1:wc_reduce:wcx,1:wc_reduce:wcy,:);
-%         [wcx, wcy, wcz]=size(webcam_image);
-%     catch
-%         disp('FRF website down')
-%         no_webcam_image=1;
-%     end
     pier_image=imread('pier.jpg');
     [px,py,pz]=size(pier_image);
     
@@ -216,7 +205,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     
     H_toobig_factor=1;           % init for first bathy pass through (needed for below)
     
-    load_bathy                   % run bathy load script (loads/plots/shifts bathy with WL)
+    preProcess_bathy                   % run bathy load script (loads/plots/shifts bathy with WL)
     bathyimage=imread('bathytopo.jpg');
     [bx,by,bz]=size(bathyimage);
     
@@ -327,7 +316,7 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     imwrite(forecastimage_small,fnameforecast_c,'jpg','Quality',75);
     cd(cd_home)
 %% 
-    load_bathy  % run bathy load script
+    preProcess_bathy  % run bathy load script
     bathyimage=imread('bathytopo.jpg');
     [bx,by,bz]=size(bathyimage);
     
@@ -560,11 +549,13 @@ function DuckSurf_windwave_nowcast(forecast_date, sim_time)
     %any Files 
     pause(2);
     eval(['copyfile ' frames_dir '\model_index.html ' http_dir])
-    eval(['copyfile ' frames_dir '\*.* ' http_dir])
+    eval(['copyfile ' frames_dir '\*' cur_date '*.* ' http_dir])
+    %eval(['copyfile ' frames_dir '\*.* ' http_dir]) Threw errors 
     
     % define fname out for netCDF file output
     ncFilename = sprintf('CMTB-waveModels_CELERIS_base_spatial_%s.nc', cur_date);
-    fnameOut = ['D:\celeris_output\' ncFilename ];
+    
+    fnameOut = [netCDFrootDir ncFilename ];
     fprintf('Making NetCDF File !~! %s\n', fnameOut)
 
     globalYamlFileName = 'yaml_files/CelerisGlobal.yml';

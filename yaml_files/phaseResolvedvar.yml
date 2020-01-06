@@ -1,6 +1,6 @@
 ## hopefully this is used for all phase resolving wave modeling done in test bed
 
-_variables: ['time','station_name', 'tsTime',  'xFRF', 'yFRF', 'totalWaterLevel', 'totalWaterLevelTS','eta','velocityU','velocityV']
+_variables: ['time','station_name', 'tsTime',  'xFRF', 'yFRF', 'elevation', 'totalWaterLevel', 'totalWaterLevelTS','eta','velocityU','velocityV']
 _attributes: []
 _dimensions: ['station_name_length', 'time', 'tsTime', 'xFRF', 'yFRF'] 
 
@@ -23,6 +23,16 @@ tsTime:
     dim: ['tsTime']
     calendar: 'gregorian'
     fill_value: '-999.99'
+
+elevation:
+    name: 'elevation'
+    _FillValue: -999.0
+    least_significant_digit: 2
+    dim: ['xFRF']
+    units: m
+    long_name: bed elevation for the bathymetry nodes
+    short_name: bathy
+    positive: up
 
 xFRF:
     name: 'xFRF'

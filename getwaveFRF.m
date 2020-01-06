@@ -38,8 +38,9 @@ if d2<d1
     return 
 end
 %% set url's 
-svrloc='https://134.164.129.55/thredds/dodsC/FRF/';  % The prefix for the CHL thredds server
-svrloc='https://chldata.erdc.dren.mil/thredds/dodsC/frf/';  % The prefix for the CHL thredds server
+
+svrloc='http://134.164.129.55/thredds/dodsC/FRF/';  % The prefix for the CHL thredds server
+%svrloc='https://chldata.erdc.dren.mil/thredds/dodsC/frf/';  % The prefix for the CHL thredds server
 
 % add other wave gauges here
 % TODO: change these arbitrary numbers to actual string calls
