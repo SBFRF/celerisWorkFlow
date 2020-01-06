@@ -5,8 +5,8 @@ load repeat_time.txt -ascii  % repeat_time in minutes
 load time_axis.txt -ascii
 load array.txt -ascii
 freqInterp = 0.5;       % what resolution do we need to sample the timeseries output at 
-tEnd =17.0667;          %[m] always Take the last 17 minutes of runtime (determined by repeat time)
-
+tEnd =17.0667;          % [m] always Take the last 17 minutes of runtime (determined by repeat time)
+min_depth=0.01;         % depth to trace for runup 
 % parse out spatial time series
 x_ind=array(:,1);
 y_ind=array(:,2);
@@ -43,7 +43,7 @@ y_inst=instruments(1,2)+yoffset;
 ho=squeeze(eta(:,1,1));  % original Depth 
 Total_depth=squeeze(eta(:,1,:))'-ho';
 shore_ie=find(ho<=0.001,1);
-min_depth=0.01;
+
 runup=zeros(nt,1);
 for n=1:nt
     for i=shore_ie:-1:1
@@ -103,7 +103,9 @@ if exist('yaml_files', 'dir')
 else
     error('netCDF package not Found!  Please add netCDFcode to your search path');
 end
-
+yFRF = y + yoffset;
+[~, yIdx] = min(abs(yFRF - 940));
+xFRF = x + xoffset;
 % create data structure for netCDF file output
 dataIn.time = epoch2Matlab(waveTime(Nt));   % this should be matlab time 
 dataIn.tsTime = (squeeze(outTime(idxStart:end)) - outTime(idxStart))';
@@ -112,6 +114,7 @@ dataIn.velocityU = (uInterp(idxStart:end, :))';
 dataIn.velocityV = (vInterp(idxStart:end, :))';
 dataIn.xFRF = x_inst;
 dataIn.yFRF = y_inst;
+dataIn.elevation = B(max(x_inst) >= xFRF, yIdx);
 dataIn.station_name = "celeris Model Profile";
 dataIn.totalWaterLevel = permute(R2, [2,1]) ;
 dataIn.totalWaterLevelTS =  runupInterp(idxStart:end); % time series
