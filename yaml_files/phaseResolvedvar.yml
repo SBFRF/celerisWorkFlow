@@ -26,9 +26,10 @@ tsTime:
 
 elevation:
     name: 'elevation'
-    _FillValue: -999.0
+    _FillValue: -999
     least_significant_digit: 2
     dim: ['xFRF']
+    data_type: 'f8'
     units: m
     long_name: bed elevation for the bathymetry nodes
     short_name: bathy
@@ -41,7 +42,7 @@ xFRF:
     long_name: 'cross-shore position '
     data_type: 'f8'
     dim: ['xFRF']
-    fill_value: '-999.99'
+    fill_value: '-999'
 
 yFRF:
     name: 'yFRF'
